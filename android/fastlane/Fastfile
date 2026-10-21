@@ -1,0 +1,57 @@
+# Nuans Android release lanes.
+#
+# The default track is `internal`. Promotion to production is done in the Play
+# Console by a person: this is a clinical decision support tool, and the build a
+# clinician installs should have been chosen by someone rather than by a tag.
+
+default_platform(:android)
+
+platform :android do
+  desc "Build an app bundle and upload it to Play"
+  lane :deploy do
+    track = ENV.fetch("PLAY_TRACK", "internal")
+
+    sh(
+      "cd .. && flutter build appbundle --release " \
+      "--build-name=#{ENV.fetch('MARKETING_VERSION')} " \
+      "--build-number=#{ENV.fetch('BUILD_NUMBER')}"
+    )
+
+    upload_to_play_store(
+      package_name: "com.nuans.app",
+      track: track,
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV.fetch("PLAY_JSON_KEY"),
+      metadata_path: "../fastlane/metadata/android",
+      # A draft, not a rollout. Someone opens the console and decides.
+      release_status: "draft",
+      skip_upload_apk: true,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      # The deobfuscation mapping has to go up with the bundle or a crash report
+      # from the field is unreadable.
+      mapping: "../build/app/outputs/mapping/release/mapping.txt",
+      validate_only: false
+    )
+  end
+
+  desc "Validate the upload without publishing anything"
+  lane :validate do
+    sh(
+      "cd .. && flutter build appbundle --release " \
+      "--build-name=#{ENV.fetch('MARKETING_VERSION')} " \
+      "--build-number=#{ENV.fetch('BUILD_NUMBER')}"
+    )
+    upload_to_play_store(
+      package_name: "com.nuans.app",
+      track: "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      json_key: ENV.fetch("PLAY_JSON_KEY"),
+      validate_only: true
+    )
+  end
+
+  error do |_lane, exception|
+    UI.important("Release failed: #{exception.message}")
+  end
+end

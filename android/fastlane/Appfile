@@ -1,0 +1,2 @@
+package_name "com.nuans.app"
+json_key_file ENV.fetch("PLAY_JSON_KEY", "")
