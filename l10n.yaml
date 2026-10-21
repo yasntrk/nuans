@@ -1,0 +1,17 @@
+# Flutter gen-l10n configuration.
+#
+# The ARB files are generated from tools/l10n/strings.py, which defines both
+# languages side by side. Editing them by hand is how a key ends up in one file
+# and not the other, so the header of each generated file says not to.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+use-escaping: true
+
+# A missing translation is written out rather than silently falling back to
+# English: a half-translated clinical screen is worse than an untranslated one,
+# because the reader cannot tell which half they are looking at. CI fails when
+# this file is non-empty.
+untranslated-messages-file: build/l10n_untranslated.json
