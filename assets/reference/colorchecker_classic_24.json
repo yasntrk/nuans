@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "id": "colorchecker_classic_24",
+  "name": {
+    "tr": "24 yamalı klasik düzen renk referans kartı",
+    "en": "24-patch classic-layout colour reference chart"
+  },
+  "layout": {
+    "columns": 6,
+    "rows": 4,
+    "neutralRow": 4
+  },
+  "whitePoint": "D65_2deg",
+  "provenance": {
+    "kind": "identitiesOnly",
+    "tr": "Yama kimlikleri ve nötr satır işareti yapısaldır. KOLORİMETRİK DEĞERLER BU DOSYADA YOKTUR ve bilinçli olarak null'dır. Bu kartların referans değerleri üretim partisi başına yayımlanır; belirli bir kartın tek doğru kaynağı o kartla gelen veri sayfasıdır. Genel bir tablo hatırlamak, kliniğin sahip olduğu kartı tarif etmeyen sayıları uydurma yoluyla CCM uydurmasına sokmak olur — ve uyum artığı cihazın renk doğruluğu olarak raporlandığı için o hata güven skoruna aklanmış şekilde girer.",
+    "en": "Patch identities and the neutral-row flag are structural. THE COLORIMETRIC VALUES ARE NOT IN THIS FILE and are deliberately null. Reference values for these charts are published per manufacturing batch, and the data sheet supplied with a particular chart is the only correct source for that chart. Recalling a generic table would feed the fit with numbers that do not describe the chart the clinic owns - and because the fit's residual is reported as the device's colour accuracy, that error would be laundered into a confidence score.",
+    "howToSupply": {
+      "tr": "Kartın veri sayfasındaki değerleri Ayarlar → Cihaz profili → Referans kartı ekranından girin veya üreticinin CXF/CGATS dosyasını içe aktarın. Değerler girilmeden cihaz profili kalibrasyonu başlatılamaz.",
+      "en": "Enter the values from the chart's data sheet under Settings → Device profile → Reference chart, or import the manufacturer's CXF/CGATS file. Device profile calibration cannot start until they are supplied."
+    }
+  },
+  "patches": [
+    {
+      "index": 1,
+      "id": "patch.01",
+      "name": "dark_skin",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 2,
+      "id": "patch.02",
+      "name": "light_skin",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 3,
+      "id": "patch.03",
+      "name": "blue_sky",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 4,
+      "id": "patch.04",
+      "name": "foliage",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 5,
+      "id": "patch.05",
+      "name": "blue_flower",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 6,
+      "id": "patch.06",
+      "name": "bluish_green",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 7,
+      "id": "patch.07",
+      "name": "orange",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 8,
+      "id": "patch.08",
+      "name": "purplish_blue",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 9,
+      "id": "patch.09",
+      "name": "moderate_red",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 10,
+      "id": "patch.10",
+      "name": "purple",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 11,
+      "id": "patch.11",
+      "name": "yellow_green",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 12,
+      "id": "patch.12",
+      "name": "orange_yellow",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 13,
+      "id": "patch.13",
+      "name": "blue",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 14,
+      "id": "patch.14",
+      "name": "green",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 15,
+      "id": "patch.15",
+      "name": "red",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 16,
+      "id": "patch.16",
+      "name": "yellow",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 17,
+      "id": "patch.17",
+      "name": "magenta",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 18,
+      "id": "patch.18",
+      "name": "cyan",
+      "isNeutral": false,
+      "reference": null
+    },
+    {
+      "index": 19,
+      "id": "patch.19",
+      "name": "white_9_5",
+      "isNeutral": true,
+      "reference": null
+    },
+    {
+      "index": 20,
+      "id": "patch.20",
+      "name": "neutral_8",
+      "isNeutral": true,
+      "reference": null
+    },
+    {
+      "index": 21,
+      "id": "patch.21",
+      "name": "neutral_6_5",
+      "isNeutral": true,
+      "reference": null
+    },
+    {
+      "index": 22,
+      "id": "patch.22",
+      "name": "neutral_5",
+      "isNeutral": true,
+      "reference": null
+    },
+    {
+      "index": 23,
+      "id": "patch.23",
+      "name": "neutral_3_5",
+      "isNeutral": true,
+      "reference": null
+    },
+    {
+      "index": 24,
+      "id": "patch.24",
+      "name": "black_2",
+      "isNeutral": true,
+      "reference": null
+    }
+  ]
+}
