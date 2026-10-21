@@ -1,0 +1,1 @@
+It also tells you how far to trust the measurement: every result carries a confidence score.

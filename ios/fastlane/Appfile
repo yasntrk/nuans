@@ -1,0 +1,4 @@
+app_identifier "com.nuans.app"
+# No apple_id and no team_id here: both come from the App Store Connect API key,
+# which is what keeps a two-factor prompt out of a non-interactive job. The
+# identifier is a placeholder until the real owned domain is registered.

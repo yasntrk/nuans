@@ -1,0 +1,24 @@
+Nuans turns a phone camera into a calibrated colour measurement tool for dentists and dental technicians.
+
+WHAT IT DOES
+• Measures the tooth in three regions: cervical, body, incisal
+• Matches against standard shade guides and reports the three closest shades with ΔE00
+• Proposes mixing proportions and a layering plan when one shade is not enough
+• Produces separate output for zirconia, metal-ceramic and composite
+• Builds a bilingual PDF report, with the report language chosen independently of the app language
+
+HOW IT MEASURES
+• RAW capture with manual exposure, locked focus and locked white balance
+• A grey card in every capture anchors the white point and the absolute lightness
+• A one-time per-device calibration against a colour reference chart
+• CIELAB (D65, 2°) and CIEDE2000, with thresholds consistent with ISO/TR 28642
+
+HONEST LIMITS
+A phone camera is not a spectrophotometer. It measures three channels, not a spectrum; it cannot see metamerism and it estimates translucency. Every measurement carries a confidence score, and every condition that lowers it is shown plainly. The shade values that ship with the app are not measurements: a clinic is expected to measure its own physical guide.
+
+DATA
+Works entirely offline. Patient images are stored encrypted on the device only. There is no cloud sync. Records are keyed by a patient code, never by a name. Deletion and export are supported.
+
+A clinical decision support tool. The final shade choice remains the responsibility of the clinician or technician.
+
+Brand names are used only to state compatibility; the app is not affiliated with any shade guide manufacturer.

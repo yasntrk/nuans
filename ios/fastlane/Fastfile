@@ -1,0 +1,116 @@
+# Nuans iOS release lanes.
+#
+# Two lanes, and the difference between them is deliberate:
+#
+#   testflight - builds, uploads, and stops. The default for every tag.
+#   appstore   - uploads and submits for review. Run by hand, never by a tag.
+#
+# Nothing automatic reaches App Review. This is a clinical decision support
+# tool, and the version a clinician installs should have been looked at by a
+# person who chose to release it, not by a tag push.
+
+default_platform(:ios)
+
+APP_IDENTIFIER = "com.nuans.app".freeze
+
+platform :ios do
+  before_all do
+    setup_ci if ENV["CI"]
+  end
+
+  desc "Build and upload to TestFlight internal testing"
+  lane :testflight do
+    build
+    upload_to_testflight(
+      api_key: asc_api_key,
+      app_identifier: APP_IDENTIFIER,
+      # No external testers and no review submission: internal only.
+      distribute_external: false,
+      skip_waiting_for_build_processing: true,
+      changelog: changelog
+    )
+  end
+
+  desc "Upload to App Store Connect and submit for review"
+  lane :appstore do
+    build
+    upload_to_app_store(
+      api_key: asc_api_key,
+      app_identifier: APP_IDENTIFIER,
+      metadata_path: "../fastlane/metadata/ios",
+      # Metadata and screenshots are reviewed in the repository, so the upload
+      # is the only place they come from.
+      skip_screenshots: false,
+      # Never automatic. Releasing to the public is a decision, not a step.
+      submit_for_review: true,
+      automatic_release: false,
+      force: true,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: true,
+        export_compliance_is_exempt: true
+      }
+    )
+  end
+
+  desc "Build the signed archive"
+  private_lane :build do
+    # The marketing version lives in pubspec.yaml and the build number comes
+    # from the CI run number, so neither is edited in Xcode by hand.
+    increment_version_number(
+      version_number: ENV.fetch("MARKETING_VERSION"),
+      xcodeproj: "Runner.xcodeproj"
+    )
+    increment_build_number(
+      build_number: ENV.fetch("BUILD_NUMBER"),
+      xcodeproj: "Runner.xcodeproj"
+    )
+
+    sh("cd .. && flutter build ios --release --no-codesign")
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "../build/ios/ipa",
+      clean: true,
+      include_bitcode: false,
+      include_symbols: true
+    )
+  end
+
+  desc "The App Store Connect API key, from the environment"
+  private_lane :asc_api_key do
+    app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_filepath: File.expand_path(
+        "~/private_keys/AuthKey_#{ENV.fetch('APP_STORE_CONNECT_KEY_ID')}.p8"
+      ),
+      in_house: false
+    )
+  end
+
+  desc "The changelog shown to internal testers"
+  private_lane :changelog do
+    # The commit subjects since the previous tag. Enough for an internal build;
+    # the public release notes are written by hand in the metadata directory,
+    # because a clinician reading release notes should not be reading commit
+    # messages.
+    begin
+      changelog_from_git_commits(
+        between: [last_git_tag(pattern: "v*"), "HEAD"],
+        pretty: "- %s",
+        merge_commit_filtering: "exclude_merges"
+      )
+    rescue StandardError
+      "Internal build #{ENV.fetch('BUILD_NUMBER', 'unknown')}"
+    end
+  end
+
+  error do |_lane, exception|
+    UI.important("Release failed: #{exception.message}")
+  end
+end

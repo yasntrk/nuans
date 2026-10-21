@@ -1,0 +1,7 @@
+source "https://rubygems.org"
+
+# Pinned to a minor version: fastlane moves quickly, and a release pipeline that
+# changes behaviour on its own is a release pipeline that fails on the day it is
+# needed.
+gem "fastlane", "~> 2.220"
+gem "cocoapods", "~> 1.15"

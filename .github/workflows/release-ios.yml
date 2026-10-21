@@ -1,0 +1,136 @@
+name: Release iOS
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      lane:
+        description: Which lane to run
+        required: true
+        default: testflight
+        type: choice
+        options: [testflight, appstore]
+
+concurrency:
+  group: release-ios
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  release:
+    name: Build and upload
+    runs-on: macos-14
+    # A release has to pass the same gates as a pull request. Skipping them for
+    # a tag is how an untested build reaches a clinic.
+    environment: ios-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: ios
+
+      - run: flutter pub get
+
+      - name: Run the full test suite
+        run: |
+          (cd packages/shade_core && dart pub get && dart test)
+          flutter analyze --fatal-infos
+          flutter test
+
+      - name: Derive the version
+        id: version
+        run: |
+          # The marketing version comes from pubspec.yaml so that the number a
+          # clinician sees is in source control. The build number comes from the
+          # run number, which is monotonic and cannot be reused - App Store
+          # Connect rejects a repeated build number, and recovering from that
+          # by hand mid-release is unpleasant.
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $version ($GITHUB_RUN_NUMBER)"
+
+      - name: Check the tag matches pubspec
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          if [ "$tag" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::tag v$tag does not match pubspec version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Install the signing certificate
+        env:
+          CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          # A throwaway keychain, unlocked only for this job. The runner is
+          # ephemeral, but a named keychain with a known password would still be
+          # the wrong habit to teach.
+          keychain=$RUNNER_TEMP/signing.keychain-db
+          password=$(openssl rand -base64 24)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 900 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+
+          echo "$CERTIFICATE_P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -P "$CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$keychain"
+          security list-keychain -d user -s "$keychain"
+          rm $RUNNER_TEMP/cert.p12
+
+          profiles=~/Library/MobileDevice/Provisioning\ Profiles
+          mkdir -p "$profiles"
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode \
+            > "$profiles/nuans.mobileprovision"
+
+      - name: Write the App Store Connect API key
+        env:
+          ASC_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_KEY_BASE64 }}
+        run: |
+          # An API key rather than an Apple ID: an Apple ID needs an app-specific
+          # password and still trips over two-factor prompts in a non-interactive
+          # job.
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_BASE64" | base64 --decode \
+            > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+      - name: Build and upload
+        working-directory: ios
+        env:
+          APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          BUILD_NUMBER: ${{ steps.version.outputs.build }}
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bundle exec fastlane ${{ inputs.lane || 'testflight' }}
+
+      - name: Clean up secrets from the runner
+        if: always()
+        run: |
+          rm -rf ~/private_keys
+          rm -f ~/Library/MobileDevice/Provisioning\ Profiles/nuans.mobileprovision
+          security delete-keychain $RUNNER_TEMP/signing.keychain-db || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-build-logs
+          path: |
+            ios/fastlane/report.xml
+            ~/Library/Logs/gym/
+          if-no-files-found: ignore

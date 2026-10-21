@@ -1,0 +1,1 @@
+dental,shade,colour,color,colorimeter,zirconia,ceramic,composite,dentist,technician,CIELAB

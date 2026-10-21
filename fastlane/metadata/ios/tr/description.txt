@@ -1,0 +1,24 @@
+Nüans, diş hekimleri ve diş teknisyenleri için telefon kamerasını kalibre edilmiş bir renk ölçüm aracı gibi kullanır.
+
+NE YAPAR
+• Dişi üç bölgede ölçer: servikal, gövde, insizal
+• Standart renk skalalarıyla eşleştirir ve en yakın üç rengi ΔE00 ile verir
+• Gerektiğinde karışım oranı ve katmanlama reçetesi önerir
+• Zirkonyum, metal destekli porselen ve kompozit için ayrı çıktı üretir
+• İki dilli PDF rapor hazırlar; rapor dili uygulama dilinden bağımsız seçilir
+
+NASIL ÖLÇER
+• Manuel pozlama, kilitli odak ve kilitli beyaz dengesiyle RAW çekim
+• Her çekimde gri kart ile beyaz noktası ve mutlak parlaklık sabitlenir
+• Cihaz başına bir kez renk referans kartıyla kalibrasyon
+• CIELAB (D65, 2°) ve CIEDE2000; eşikler ISO/TR 28642 ile uyumlu
+
+DÜRÜST SINIRLAR
+Telefon kamerası spektrofotometre değildir. Üç kanalla ölçer, spektrum ölçmez; metamerizmi göremez ve translüsensiyi tahmin eder. Her ölçüm bir güven skoruyla gelir ve skoru düşürecek her koşul arayüzde açıkça gösterilir. Uygulama ile birlikte gelen skala değerleri ölçüm değildir; kliniğin kendi fiziksel skalasını ölçmesi beklenir.
+
+VERİ
+Tamamen çevrimdışı çalışır. Hasta görüntüleri yalnızca cihazda, şifreli olarak saklanır. Bulut senkronu yoktur. Hasta adı değil hasta kodu kullanılır. Silme ve dışa aktarma desteklenir.
+
+Klinik karar destek aracıdır; nihai renk seçimi hekim/teknisyen sorumluluğundadır.
+
+Marka adları yalnızca uyumluluk belirtmek için kullanılır; uygulama hiçbir skala üreticisiyle ilişkili değildir.

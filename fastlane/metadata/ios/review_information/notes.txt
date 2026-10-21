@@ -1,0 +1,19 @@
+Reviewer notes.
+
+The app needs camera access to work at all; there is nothing to see without it.
+
+To exercise the measurement without a patient:
+1. Skip the device profile calibration when prompted. The app will run with a
+   manufacturer colour matrix and show a low-confidence badge, which is the
+   intended behaviour rather than an error.
+2. On the camera screen, point it at any printed matte surface. The capture
+   button stays disabled until all six live checks pass; this is deliberate and
+   is explained on screen by the failing check.
+3. Place any neutral grey card in the dashed slot beside the tooth outline to
+   satisfy the grey card check.
+
+The app stores data on the device only and makes no network requests.
+
+It is a clinical decision support tool for dental professionals. It does not
+diagnose, and it states on the result screen and in every exported report that
+the final shade choice remains the clinician's responsibility.

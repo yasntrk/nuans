@@ -1,0 +1,115 @@
+name: Release Android
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Play track to publish to
+        required: true
+        default: internal
+        type: choice
+        options: [internal, alpha, beta]
+
+concurrency:
+  group: release-android
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.47.7'
+
+jobs:
+  release:
+    name: Build and upload
+    runs-on: ubuntu-latest
+    environment: android-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: android
+
+      - run: flutter pub get
+
+      - name: Run the full test suite
+        run: |
+          (cd packages/shade_core && dart pub get && dart test)
+          flutter analyze --fatal-infos
+          flutter test
+
+      - name: Derive the version
+        id: version
+        run: |
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: *//' | cut -d+ -f1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Check the tag matches pubspec
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          if [ "$tag" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::tag v$tag does not match pubspec version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
+      - name: Write the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > $RUNNER_TEMP/upload.jks
+          cat > android/key.properties <<PROPS
+          storeFile=$RUNNER_TEMP/upload.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          PROPS
+
+      - name: Write the Play service account key
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: echo "$PLAY_SERVICE_ACCOUNT_JSON" > $RUNNER_TEMP/play-service-account.json
+
+      - name: Build and upload
+        working-directory: android
+        env:
+          BUILD_NUMBER: ${{ steps.version.outputs.build }}
+          MARKETING_VERSION: ${{ steps.version.outputs.version }}
+          PLAY_JSON_KEY: ${{ runner.temp }}/play-service-account.json
+          PLAY_TRACK: ${{ inputs.track || 'internal' }}
+        run: bundle exec fastlane deploy
+
+      - name: Clean up secrets from the runner
+        if: always()
+        run: |
+          rm -f $RUNNER_TEMP/upload.jks
+          rm -f $RUNNER_TEMP/play-service-account.json
+          rm -f android/key.properties
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-artifacts
+          path: |
+            build/app/outputs/bundle/release/*.aab
+            build/app/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
