@@ -214,7 +214,31 @@ Yazarken bu kontrolün kendisi iki kez yanlış alarm verdi (Pigeon struct'ları
 plugin'de, controller'ın kendi içsel imzasında değil). İkisi de düzeltildi — bir
 kontrolün kendi yanlış pozitifini "bulgu" diye raporlamak, hiç kontrol etmemekten kötüdür.
 
-## 9. Hâlâ doğrulanmayanlar
+## 9. Push etmek iki CI kusuru ortaya çıkardı
+
+Depoyu GitHub'a gönderdikten sonra, yazdığım iş akışının iki yerde kendi derlemesini
+kıracağı görüldü. İkisi de koşmasını beklemeden, sadece ne yaptığına bakarak bulundu.
+
+**`ios-build` var olmayan bir projeyi derlemeye çalışıyordu.** `flutter build ios` ve
+`xcodebuild test -scheme Runner` çağırıyor, ama depoda `ios/Runner.xcodeproj` ve
+`Podfile` yok — Swift kodu yazıldı, onu derleyen Xcode projesi hiç oluşturulmadı. İş
+artık projenin varlığını kontrol ediyor: yoksa bir `::notice::` bırakıp geçiyor ve proje
+eklendiği anda derlemeye başlıyor. Yoklukta Swift'i kapsayan şey, aynı iş akışındaki
+sözleşme uyum kontrolü.
+
+**Golden görüntüler Ubuntu'da karşılaştırılacaktı.** 56 referans görüntü bu makinede,
+macOS'ta üretildi; `app` işi `ubuntu-latest` üzerinde koşuyordu. Flutter golden'ları
+platforma bağlıdır — metin rasterizasyonu ve kenar yumuşatma farklı olduğu için aynı
+widget Linux'ta farklı bir görüntü verir ve her karşılaştırma, kodla hiç ilgisi olmayan
+bir sebepten kırmızıya düşerdi.
+
+Golden testler artık `@Tags(['golden'])` ile etiketli: Linux işi onları hariç tutuyor
+(33 test), macOS'ta kendi işinde koşuyorlar (56 test). macOS koşucusunu hak ettiren şey
+görüntü karşılaştırması değil, harness'ın diğer iddiası: hiçbir `RenderFlex`'in taşmadığı
+— iki dilde, iki yazı tipi ölçeğinde. Bu testlerin var olma sebebi o ve reçete kartının
+taşması öyle bulundu.
+
+## 10. Hâlâ doğrulanmayanlar
 
 - **Swift kodu derlenmedi.** Xcode projesi yok; iOS tarafı yalnızca üretilmiş Pigeon
   bağlayıcılarına karşı okundu, derleyiciden geçmedi.

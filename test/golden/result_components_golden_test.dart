@@ -1,4 +1,14 @@
+// Golden images are platform-dependent: text rasterisation and antialiasing
+// differ between macOS and Linux, so a baseline captured on one fails on the
+// other. The tag lets CI compare images only on the platform that generated
+// them, while still running these cases on every push.
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
+// Imported for the @Tags annotation above, which the test runner reads
+// before any test is built.
+import 'package:flutter_test/flutter_test.dart';
 import 'package:nuans/core/theme/app_theme.dart';
 import 'package:nuans/features/analysis/presentation/confidence_banner.dart';
 import 'package:nuans/features/analysis/presentation/region_result_card.dart';

@@ -1,0 +1,11 @@
+# Declares the tags this project uses, so `flutter test` does not warn about an
+# unknown one.
+tags:
+  golden:
+    # The image comparison in these tests is only meaningful on the platform
+    # the baselines were generated on, which is macOS. CI runs them in their own
+    # job there and excludes them from the Linux job.
+    #
+    # Note what is NOT platform-dependent: the harness also asserts that no
+    # RenderFlex overflowed, which is the failure these tests were written to
+    # catch. That assertion is why the job is worth a macOS runner.
