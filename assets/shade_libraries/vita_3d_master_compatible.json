@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "id": "vita_3d_master_compatible",
+  "system": "threeDimensionalMasterCompatible",
+  "name": {
+    "tr": "29 renkli üç boyutlu skala uyumlu",
+    "en": "29-shade three-dimensional guide compatible"
+  },
+  "compatibility": "VITA 3D-MASTER compatible",
+  "whitePoint": "D65_2deg",
+  "provenance": {
+    "kind": "structuralScaffold",
+    "generatedBy": "tools/shade_libraries/generate.py",
+    "tr": "Bu değerler ÖLÇÜM DEĞİLDİR ve hiçbir yayımlanmış tablodan alınmamıştır. Skalanın kendi sıralamasını koruyan yapısal bir iskelettir. Klinik, kendi fiziksel skalasını bir kez ölçerek bu değerleri değiştirmelidir.",
+    "en": "These values are NOT measurements and are not taken from any published table. They are a structural scaffold that preserves the guide's own ordering. A clinic must replace them by measuring its own physical guide once."
+  },
+  "entries": [
+    {
+      "code": "0M1",
+      "lab": {
+        "l": 84.0,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "0M2",
+      "lab": {
+        "l": 84.0,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "0M3",
+      "lab": {
+        "l": 84.0,
+        "a": 3.65,
+        "b": 20.68
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "1M1",
+      "lab": {
+        "l": 79.8,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "1M2",
+      "lab": {
+        "l": 79.8,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2L1.5",
+      "lab": {
+        "l": 75.6,
+        "a": 0.39,
+        "b": 11.24
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2L2.5",
+      "lab": {
+        "l": 75.6,
+        "a": 0.62,
+        "b": 17.74
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2M1",
+      "lab": {
+        "l": 75.6,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2M2",
+      "lab": {
+        "l": 75.6,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2M3",
+      "lab": {
+        "l": 75.6,
+        "a": 3.65,
+        "b": 20.68
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2R1.5",
+      "lab": {
+        "l": 75.6,
+        "a": 3.48,
+        "b": 10.7
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "2R2.5",
+      "lab": {
+        "l": 75.6,
+        "a": 5.49,
+        "b": 16.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3L1.5",
+      "lab": {
+        "l": 71.4,
+        "a": 0.39,
+        "b": 11.24
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3L2.5",
+      "lab": {
+        "l": 71.4,
+        "a": 0.62,
+        "b": 17.74
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3M1",
+      "lab": {
+        "l": 71.4,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3M2",
+      "lab": {
+        "l": 71.4,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3M3",
+      "lab": {
+        "l": 71.4,
+        "a": 3.65,
+        "b": 20.68
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3R1.5",
+      "lab": {
+        "l": 71.4,
+        "a": 3.48,
+        "b": 10.7
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "3R2.5",
+      "lab": {
+        "l": 71.4,
+        "a": 5.49,
+        "b": 16.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4L1.5",
+      "lab": {
+        "l": 67.2,
+        "a": 0.39,
+        "b": 11.24
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4L2.5",
+      "lab": {
+        "l": 67.2,
+        "a": 0.62,
+        "b": 17.74
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4M1",
+      "lab": {
+        "l": 67.2,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4M2",
+      "lab": {
+        "l": 67.2,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4M3",
+      "lab": {
+        "l": 67.2,
+        "a": 3.65,
+        "b": 20.68
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4R1.5",
+      "lab": {
+        "l": 67.2,
+        "a": 3.48,
+        "b": 10.7
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "4R2.5",
+      "lab": {
+        "l": 67.2,
+        "a": 5.49,
+        "b": 16.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "5M1",
+      "lab": {
+        "l": 63.0,
+        "a": 1.39,
+        "b": 7.88
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "5M2",
+      "lab": {
+        "l": 63.0,
+        "a": 2.52,
+        "b": 14.28
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    },
+    {
+      "code": "5M3",
+      "lab": {
+        "l": 63.0,
+        "a": 3.65,
+        "b": 20.68
+      },
+      "source": "unverifiedPlaceholder",
+      "measuredAtUtc": null
+    }
+  ]
+}

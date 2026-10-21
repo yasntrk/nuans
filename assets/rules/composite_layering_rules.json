@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "composite_layering_v1",
+  "name": {
+    "tr": "Kompozit katmanlama kuralları v1",
+    "en": "Composite layering rules v1"
+  },
+  "provenance": {
+    "kind": "clinicalHeuristic",
+    "tr": "Bu kurallar ölçüm değil, klinik sezgiselidir. Translüsensi ölçülmüyor (siyah/beyaz zemin ölçümü yapılmıyor); kurallar insizal L* değeri ile gövdeye göre b* kaymasından çıkarım yapar. Sahada doğrulanıp ayarlanmalıdır.",
+    "en": "These rules are a clinical heuristic, not a measurement. Translucency is not measured - there is no black/white backing reading - so the rules infer it from the incisal lightness and the b* shift against the body. They must be validated and tuned in the field."
+  },
+  "enamelRules": [
+    {
+      "id": "bleachedHighValue",
+      "when": { "incisalLightnessMin": 82.0, "incisalChromaMax": 12.0 },
+      "enamel": "bleach",
+      "rationale": {
+        "tr": "İnsizal üçlü çok açık ve düşük kromalı: ağartılmış diş aralığı, yüksek parlaklıkta emaye gerekir.",
+        "en": "A very light, low-chroma incisal third: the bleached range, which needs a high-value enamel."
+      }
+    },
+    {
+      "id": "pronouncedOpalescence",
+      "when": { "incisalLightnessMin": 74.0, "blueShiftMax": -4.0 },
+      "enamel": "opalescent",
+      "rationale": {
+        "tr": "Belirgin mavi kayma parlaklık düşmeden görülüyor: opalesan emaye bu etkiyi taklit eder.",
+        "en": "A pronounced blue shift with the lightness held up: an opalescent enamel reproduces that."
+      }
+    },
+    {
+      "id": "translucentIncisal",
+      "when": { "blueShiftMax": -1.5 },
+      "enamel": "translucent",
+      "rationale": {
+        "tr": "İnsizal üçlü gövdeye göre daha mavi: kenarın arkasında dolgu yok, translüsent emaye uygun.",
+        "en": "The incisal third reads bluer than the body: nothing behind the edge, so a translucent enamel fits."
+      }
+    },
+    {
+      "id": "lowValueMatching",
+      "when": { "incisalLightnessMax": 66.0 },
+      "enamel": "matchingShade",
+      "rationale": {
+        "tr": "İnsizal üçlü koyu ve translüsensi işareti yok: dentinle aynı aileden emaye, translüsent emaye değeri daha da düşürür.",
+        "en": "A dark incisal third with no translucency signature: an enamel from the dentin's own family, since a translucent one would drop the value further."
+      }
+    },
+    {
+      "id": "default",
+      "when": {},
+      "enamel": "universal",
+      "rationale": {
+        "tr": "Ayırt edici bir işaret yok: genel amaçlı emaye. Bu kural tablonun son satırıdır ve her zaman eşleşir.",
+        "en": "No distinguishing signature: a general-purpose enamel. This rule is the table's last row and always matches."
+      }
+    }
+  ],
+  "brandMapping": {
+    "_comment": {
+      "tr": "Jenerik emaye türünden markanın kavanoza bastığı ada eşleme. BOŞ GELİR. Doldurmak, üreticinin kendi tablosundan ad kopyalamak demektir; bu adları uydurmak teknisyenin önüne uydurma ürün verisi koymak olur. Örnek yapı: \"translucent\": { \"brandSlug\": \"UrunAdi\" }",
+      "en": "Maps a generic enamel kind to the product name a brand prints on the jar. SHIPS EMPTY. Filling it in means copying names off a manufacturer's own chart; inventing them would put made-up product data in front of a technician about to order materials. Example shape: \"translucent\": { \"brandSlug\": \"ProductName\" }"
+    },
+    "matchingShade": {},
+    "universal": {},
+    "translucent": {},
+    "opalescent": {},
+    "bleach": {}
+  }
+}
