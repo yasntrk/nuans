@@ -1,0 +1,30 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # The core colour logic must not ship with unfinished work in it.
+    todo: error
+    fixme: error
+
+linter:
+  rules:
+    # No user-facing text may be written in Dart: every string a clinician
+    # reads comes from an ARB file, so that both languages stay in step.
+    prefer_single_quotes: true
+
+    # Off, deliberately. The rule exists for a published package whose dartdoc
+    # IS its public interface; both packages here are `publish_to: none` with a
+    # single consumer. What it asks for in practice is a comment on every plain
+    # data field - `/// The patch id.` above `final String patchId;` - and 700
+    # of those would bury the comments that carry an argument.
+    #
+    # The standard this project holds instead, and which the code already
+    # meets: every type, every enum value whose meaning is not its name, and
+    # every member whose behaviour is surprising carries a doc comment that
+    # says WHY, not what. Plain fields are documented by their type's own
+    # comment.
+    public_member_api_docs: false

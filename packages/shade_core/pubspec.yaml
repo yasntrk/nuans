@@ -1,0 +1,16 @@
+name: shade_core
+description: >-
+  Pure Dart colour engine for Nuans: CIE colorimetry, camera calibration,
+  robust region statistics and shade matching. No Flutter dependency.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  meta: ^1.12.0
+
+dev_dependencies:
+  test: ^1.25.0
+  very_good_analysis: ^6.0.0
