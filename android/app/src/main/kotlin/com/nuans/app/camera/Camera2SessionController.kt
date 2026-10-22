@@ -166,6 +166,75 @@ class Camera2SessionController(
         }
     }
 
+    /**
+     * Returns the preview texture, creating it on the platform thread.
+     *
+     * Registering a texture reaches `FlutterJNI.registerTexture`, whose first
+     * instruction is `ensureRunningOnMainThread()`. Called from the control
+     * thread it throws, and an exception escaping a HandlerThread ends the
+     * process - the application simply vanishes. This is the same main-thread
+     * rule that [emit] exists for; the texture registry is the other side of
+     * it that was missed.
+     *
+     * Waiting here is safe: the platform thread posted this work and returned,
+     * so it is free to answer.
+     */
+    private fun requireTextureEntry(): TextureRegistry.SurfaceTextureEntry {
+        textureEntry?.let { return it }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            return textureRegistry.createSurfaceTexture().also { textureEntry = it }
+        }
+        val latch = CountDownLatch(1)
+        var created: TextureRegistry.SurfaceTextureEntry? = null
+        var failure: Throwable? = null
+        mainHandler.post {
+            try {
+                created = textureRegistry.createSurfaceTexture()
+            } catch (error: Throwable) {
+                failure = error
+            } finally {
+                latch.countDown()
+            }
+        }
+        if (!latch.await(TEXTURE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            throw ShadeCameraFailure(
+                CameraErrorCode.CONFIGURATION_FAILED,
+                "the platform thread did not create a preview texture within " +
+                    "$TEXTURE_TIMEOUT_MILLIS ms",
+            )
+        }
+        failure?.let {
+            throw ShadeCameraFailure(
+                CameraErrorCode.CONFIGURATION_FAILED,
+                it.message ?: "the preview texture could not be created",
+            )
+        }
+        val entry = created ?: throw ShadeCameraFailure(
+            CameraErrorCode.CONFIGURATION_FAILED,
+            "the platform returned no preview texture",
+        )
+        textureEntry = entry
+        return entry
+    }
+
+    /**
+     * Releases the preview texture on the platform thread.
+     *
+     * `unregisterTexture` asserts the main thread exactly as `registerTexture`
+     * does, so tearing down from the control thread would crash on the way out
+     * instead of on the way in. Not waited on: nothing afterwards depends on
+     * it, and dispose is already answering its caller.
+     */
+    private fun releaseTextureEntry() {
+        val entry = textureEntry ?: return
+        textureEntry = null
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            entry.release()
+        } else {
+            mainHandler.post { entry.release() }
+        }
+    }
+
     /** Tells Dart which stage of a capture is running. */
     private fun reportProgress(
         captureId: String,
@@ -330,6 +399,19 @@ class Camera2SessionController(
                 )
             } catch (failure: ShadeCameraFailure) {
                 callback(Result.failure(failure))
+            } catch (error: Throwable) {
+                // Anything else would escape a HandlerThread and end the
+                // process: the application would vanish instead of saying what
+                // went wrong. The one that did came from calling a Flutter API
+                // off the platform thread; see requireTextureEntry.
+                callback(
+                    Result.failure(
+                        ShadeCameraFailure(
+                            CameraErrorCode.CAPTURE_FAILED,
+                            error.message ?: error.toString(),
+                        ),
+                    ),
+                )
             }
         }
     }
@@ -338,12 +420,11 @@ class Camera2SessionController(
         device: CameraDevice,
         probed: CapabilityProbe.Selection,
     ) {
-        val entry = textureRegistry.createSurfaceTexture()
+        val entry = requireTextureEntry()
         entry.surfaceTexture().setDefaultBufferSize(
             probed.previewSize.width,
             probed.previewSize.height,
         )
-        textureEntry = entry
         previewSurface = Surface(entry.surfaceTexture())
 
         metricsReader = ImageReader.newInstance(
@@ -777,6 +858,19 @@ class Camera2SessionController(
                 callback(Result.success(exposureState()))
             } catch (failure: ShadeCameraFailure) {
                 callback(Result.failure(failure))
+            } catch (error: Throwable) {
+                // Anything else would escape a HandlerThread and end the
+                // process: the application would vanish instead of saying what
+                // went wrong. The one that did came from calling a Flutter API
+                // off the platform thread; see requireTextureEntry.
+                callback(
+                    Result.failure(
+                        ShadeCameraFailure(
+                            CameraErrorCode.CAPTURE_FAILED,
+                            error.message ?: error.toString(),
+                        ),
+                    ),
+                )
             }
         }
     }
@@ -906,6 +1000,20 @@ class Camera2SessionController(
             } catch (failure: ShadeCameraFailure) {
                 burst = null
                 callback(Result.failure(failure))
+            } catch (error: Throwable) {
+                // Anything else would escape a HandlerThread and end the
+                // process: the application would vanish instead of saying what
+                // went wrong. The one that did came from calling a Flutter API
+                // off the platform thread; see requireTextureEntry.
+                burst = null
+                callback(
+                    Result.failure(
+                        ShadeCameraFailure(
+                            CameraErrorCode.CAPTURE_FAILED,
+                            error.message ?: error.toString(),
+                        ),
+                    ),
+                )
             }
         }
     }
@@ -1133,6 +1241,19 @@ class Camera2SessionController(
                 )
             } catch (failure: ShadeCameraFailure) {
                 callback(Result.failure(failure))
+            } catch (error: Throwable) {
+                // Anything else would escape a HandlerThread and end the
+                // process: the application would vanish instead of saying what
+                // went wrong. The one that did came from calling a Flutter API
+                // off the platform thread; see requireTextureEntry.
+                callback(
+                    Result.failure(
+                        ShadeCameraFailure(
+                            CameraErrorCode.CAPTURE_FAILED,
+                            error.message ?: error.toString(),
+                        ),
+                    ),
+                )
             }
         }
     }
@@ -1164,8 +1285,7 @@ class Camera2SessionController(
             rawReader = null
             previewSurface?.release()
             previewSurface = null
-            textureEntry?.release()
-            textureEntry = null
+            releaseTextureEntry()
             store.releaseAll()
             synchronized(frameLock) {
                 latestPreview = null
@@ -1236,6 +1356,15 @@ private const val OPEN_TIMEOUT_MILLIS = 5_000L
 
 /** The same reasoning for `CameraCaptureSession.StateCallback`. */
 private const val CONFIGURE_TIMEOUT_MILLIS = 5_000L
+
+/**
+ * How long to wait for the platform thread to register a preview texture.
+ *
+ * It is a handful of allocations once the thread is free, so a second is
+ * already generous; exceeding it means the platform thread is wedged, which is
+ * worth reporting rather than waiting out.
+ */
+private const val TEXTURE_TIMEOUT_MILLIS = 1_000L
 
 /**
  * How long a settings change may take to show up in a preview frame.

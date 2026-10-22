@@ -42,6 +42,38 @@ final class CaptureSessionController: NSObject {
     /// Set by the plugin so out-of-band failures and progress can reach Dart.
     var events: ShadeCameraFlutterApi?
 
+    /// Sends an event from the platform thread.
+    ///
+    /// A platform channel is written to from the platform thread. The Android
+    /// build proved the cost of ignoring that - the engine asserts it outright
+    /// and the process dies - and these calls are raised on the session and
+    /// video queues, so they are hopped across rather than sent where they
+    /// arise.
+    private func emit(_ send: @escaping (ShadeCameraFlutterApi) -> Void) {
+        guard let api = events else { return }
+        if Thread.isMainThread {
+            send(api)
+        } else {
+            DispatchQueue.main.async { send(api) }
+        }
+    }
+
+    /// Tells Dart which stage of a capture is running.
+    private func reportProgress(
+        _ captureId: String,
+        _ stage: CaptureStage,
+        captured: Int64,
+        requested: Int64
+    ) {
+        let progress = CaptureProgress(
+            captureId: captureId,
+            stage: stage,
+            capturedFrames: captured,
+            requestedFrames: requested
+        )
+        emit { $0.onCaptureProgress(progress: progress) { _ in } }
+    }
+
     /// The live region configuration, safe to touch from either queue.
     private var previewConfig: PreviewConfig? {
         get {
@@ -245,13 +277,15 @@ final class CaptureSessionController: NSObject {
                 object: session,
                 queue: nil
             ) { [weak self] _ in
-                self?.events?.onCameraError(
-                    error: ShadeCameraFailure(
-                        .interrupted,
-                        "the capture session reported a runtime error",
-                        recoverable: true
-                    ).event
-                ) { _ in }
+                self?.emit {
+                    $0.onCameraError(
+                        error: ShadeCameraFailure(
+                            .interrupted,
+                            "the capture session reported a runtime error",
+                            recoverable: true
+                        ).event
+                    ) { _ in }
+                }
             }
         )
     }
@@ -269,7 +303,7 @@ final class CaptureSessionController: NSObject {
         default:
             reason = .unknown
         }
-        events?.onSessionInterrupted(reason: reason) { _ in }
+        emit { $0.onSessionInterrupted(reason: reason) { _ in } }
     }
 
     // MARK: - Preview
@@ -289,7 +323,14 @@ final class CaptureSessionController: NSObject {
             self.previewConfig = config
             self.metricsComputer.reset()
             if self.previewTexture == nil {
-                self.previewTexture = PreviewTexture(registry: self.textureRegistry)
+                // Registering a texture is a platform-thread call on both
+                // platforms; doing it on the session queue is what crashed the
+                // Android build, and there is no reason to believe the iOS
+                // engine is more forgiving. Synchronous, so the texture id
+                // below is the one that was registered.
+                self.previewTexture = DispatchQueue.main.sync {
+                    PreviewTexture(registry: self.textureRegistry)
+                }
             }
             if !self.session.isRunning {
                 self.session.startRunning()
@@ -438,14 +479,12 @@ final class CaptureSessionController: NSObject {
                 )))
                 return
             }
-            self.events?.onCaptureProgress(
-                progress: CaptureProgress(
-                    captureId: "",
-                    stage: .lockingParameters,
-                    capturedFrames: 0,
-                    requestedFrames: settings.burstFrameCount
-                )
-            ) { _ in }
+            self.reportProgress(
+                "",
+                .lockingParameters,
+                captured: 0,
+                requested: settings.burstFrameCount
+            )
 
             let format = device.activeFormat
             let iso = settings.isoOverride.map { Float($0) } ?? format.minISO
@@ -648,14 +687,12 @@ final class CaptureSessionController: NSObject {
                 }
             }
             self.burst = collector
-            self.events?.onCaptureProgress(
-                progress: CaptureProgress(
-                    captureId: request.captureId,
-                    stage: .capturingBurst,
-                    capturedFrames: 0,
-                    requestedFrames: request.settings.burstFrameCount
-                )
-            ) { _ in }
+            self.reportProgress(
+                request.captureId,
+                .capturingBurst,
+                captured: 0,
+                requested: request.settings.burstFrameCount
+            )
             for _ in 0..<collector.expected {
                 self.photoOutput.capturePhoto(
                     with: self.makePhotoSettings(preferRaw: request.settings.preferBayerRaw),
@@ -697,14 +734,12 @@ final class CaptureSessionController: NSObject {
                 captureId: request.captureId
             )
         }
-        events?.onCaptureProgress(
-            progress: CaptureProgress(
-                captureId: request.captureId,
-                stage: .selectingFrames,
-                capturedFrames: Int64(photos.count),
-                requestedFrames: request.settings.burstFrameCount
-            )
-        ) { _ in }
+        reportProgress(
+            request.captureId,
+            .selectingFrames,
+            captured: Int64(photos.count),
+            requested: request.settings.burstFrameCount
+        )
 
         let metadata = RawPhotoMetadata.read(from: photos[0])
         var buffers: [CVPixelBuffer] = []
@@ -787,14 +822,12 @@ final class CaptureSessionController: NSObject {
             )
         }
 
-        events?.onCaptureProgress(
-            progress: CaptureProgress(
-                captureId: request.captureId,
-                stage: .reducingRois,
-                capturedFrames: Int64(photos.count),
-                requestedFrames: request.settings.burstFrameCount
-            )
-        ) { _ in }
+        reportProgress(
+            request.captureId,
+            .reducingRois,
+            captured: Int64(photos.count),
+            requested: request.settings.burstFrameCount
+        )
 
         let acceptedBuffers = accepted.map { buffers[$0] }
         let samples = try reduceRegions(
@@ -969,7 +1002,10 @@ final class CaptureSessionController: NSObject {
             self.interruptionObservers.removeAll()
             if self.session.isRunning { self.session.stopRunning() }
             self.videoOutput.setSampleBufferDelegate(nil, queue: nil)
-            self.previewTexture?.unregister()
+            // Unregistering is the same platform-thread call as registering.
+            if let texture = self.previewTexture {
+                DispatchQueue.main.async { texture.unregister() }
+            }
             self.previewTexture = nil
             self.store.releaseAll()
             self.latestPreviewBuffer = nil
@@ -1009,7 +1045,7 @@ extension CaptureSessionController: AVCaptureVideoDataOutputSampleBufferDelegate
                 timestampMillis: timestamp
             )
         else { return }
-        events?.onPreviewMetrics(metrics: metrics) { _ in }
+        emit { $0.onPreviewMetrics(metrics: metrics) { _ in } }
     }
 }
 
@@ -1034,14 +1070,12 @@ extension CaptureSessionController: AVCapturePhotoCaptureDelegate {
             return
         }
         collector.add(photo)
-        events?.onCaptureProgress(
-            progress: CaptureProgress(
-                captureId: collector.request.captureId,
-                stage: .capturingBurst,
-                capturedFrames: Int64(collector.count),
-                requestedFrames: collector.request.settings.burstFrameCount
-            )
-        ) { _ in }
+        reportProgress(
+            collector.request.captureId,
+            .capturingBurst,
+            captured: Int64(collector.count),
+            requested: collector.request.settings.burstFrameCount
+        )
     }
 }
 

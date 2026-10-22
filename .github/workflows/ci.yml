@@ -129,6 +129,12 @@ jobs:
           python3 -I tools/native/check_swift_against_pigeon.py
           python3 -I tools/native/check_kotlin_against_pigeon.py
 
+      # The engine asserts the platform thread on texture registration and on
+      # every channel send. Breaking that rule on a HandlerThread ends the
+      # process with no message, which is how it reached a tester's phone.
+      - name: Engine calls stay on the platform thread
+        run: python3 -I tools/native/check_platform_thread.py
+
       # The honest position on what a phone camera can measure is stated in the
       # specification, the onboarding and the result screen. Store copy is where
       # it is most tempting to quietly drop, so the constraint is enforced here

@@ -368,3 +368,60 @@ Cihazda sınanması gerekenler:
   mesajı tam bu durumu ayırt etmek için var
 - `lockCaptureParameters`'ın iki kare beklemesinin gerçek bir pozlama çözümünde
   yakınsaması
+
+---
+
+## Dördüncü tur: test eden kişide çökme (2026-10-22)
+
+Bildirim: "Canlı Önizlemeye tıklayınca atıyor uygulamadan. Bi ses gelip atıyor."
+
+Sebep, üçüncü turda bulduğum hata sınıfının **aynısı, kaçırdığım yerde**. O turda
+"Dart'a gönderilen olaylar ana thread'den gitmeli" kuralını bulup olaylara
+uygulamıştım. Ama kuralı bulduğum yerde durdum: motorun ana thread şart koştuğu
+tek API kanal gönderimi değil.
+
+`FlutterJNI` sınıf dosyasından okunan (aynı Python okuyucuyla):
+
+| Metot | İlk komut |
+|---|---|
+| `dispatchPlatformMessage` | `ensureRunningOnMainThread()` |
+| `registerTexture` | `ensureRunningOnMainThread()` |
+| `unregisterTexture` | `ensureRunningOnMainThread()` |
+| `markTextureFrameAvailable` | `ensureRunningOnMainThread()` |
+
+`configureSession` dokuyu `textureRegistry.createSurfaceTexture()` ile **kamera
+thread'inde** oluşturuyordu; bu çağrı `FlutterRenderer.registerSurfaceTexture`
+üzerinden `FlutterJNI.registerTexture`'a iniyor ve istisna fırlatıyordu.
+`startPreview` yalnızca `ShadeCameraFailure` yakaladığı için istisna
+`HandlerThread`'den kaçıyordu — ve bir thread'den kaçan istisna **süreci
+öldürür**. "Bi ses gelip atıyor" tam olarak budur. `dispose`'daki
+`textureEntry?.release()` de aynı kuralı ikinci kez çiğniyordu.
+
+Düzeltme:
+
+- `requireTextureEntry()` / `releaseTextureEntry()`: doku ana thread'de
+  oluşturulup bırakılıyor. Kamera thread'i beklerken ana thread boş, çünkü
+  `startPreview` postalayıp dönmüştü.
+- Dört posta bloğuna `catch (Throwable)` ağı. Beklenmedik bir istisnanın
+  uygulamayı yok etmesi yerine hata olarak bildirilmesi, eklentinin zaten
+  yazılı kuralı ("sessizce yutmak yerine `CAPTURE_FAILED`").
+- iOS'ta aynı desen vardı: doku `sessionQueue`'da kaydediliyor, olaylar
+  `sessionQueue` ve `videoQueue`'dan gönderiliyordu. İkisi de ana kuyruğa
+  taşındı. **Derlenmedi** — Xcode projesi yok.
+
+Nöbetçi: `tools/native/check_platform_thread.py`, CI'da. Korunan sembol
+(`events`, `textureRegistry`) yalnızca kendisini ana thread'e taşıyan yardımcının
+içinde geçebilir.
+
+Nöbetçinin ilk hali **hatayı yakalamıyordu**: "bildirim satırını atla"
+muafiyetim `val x = ...` ile başlayan her satırı atlıyordu, ki hatanın kendisi
+(`val entry = textureRegistry.createSurfaceTexture()`) tam olarak öyle bir
+satır. Hatayı geri koyup denemeseydim, işe yaramayan bir nöbetçiyi işe yarıyor
+diye gönderecektim. Muafiyet artık sembole bağlı; iki hata örneğinde de
+yakaladığı doğrulandı.
+
+### Doğrulanmadı
+
+Çökme bir cihazda **tekrarlanmadı** — burada bağlı cihaz yok. Mekanizma kanıtlı
+(bayt kodundaki iddia + yanlış thread'deki çağrı yeri), ama bu bir yeniden
+üretim değil. iOS tarafı hiç derlenmedi.
