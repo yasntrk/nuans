@@ -1,0 +1,54 @@
+Nüans / Nuans — dental shade matching with a phone camera
+Copyright 2026 the Nüans authors
+
+(The copyright holder is named this way because the repository's git
+identity carries no legal name. Replace it with yours before any
+distribution that matters legally.)
+
+This product includes software developed as part of the Nüans project.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+WHAT THIS SOFTWARE IS NOT
+--------------------------------------------------------------------------------
+
+A phone camera is a three-channel device. It is not a spectrophotometer: it
+cannot observe a spectrum, it cannot see metamerism, and it estimates
+translucency rather than measuring it. Every result this software produces
+carries a confidence score, and a result read without its confidence score is
+being read wrongly.
+
+This software is not a medical device and is not a diagnostic instrument. It
+does not replace a shade guide, a spectrophotometer, or a clinician's judgement.
+
+--------------------------------------------------------------------------------
+THE SHIPPED SHADE VALUES ARE A SCAFFOLD, NOT MEASUREMENTS
+--------------------------------------------------------------------------------
+
+The shade libraries in this repository (VITA classical, VITA 3D-MASTER and the
+composite and zirconia tables) are a documented structural scaffold: the tab
+names, their ordering and their adjacency are real, and the numeric L*a*b*
+values attached to them are PLACEHOLDERS that have not been measured on a
+spectrophotometer. They are generated, marked as unverified in the source, and
+exist so the algorithms have something of the right shape to run against.
+
+Do not treat them as reference data. Do not publish results computed from them
+as colorimetric findings. Anyone shipping this software clinically must replace
+them with values measured on their own instrument and say so.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY CONTENT
+--------------------------------------------------------------------------------
+
+Noto Sans (assets/fonts/NotoSans-Regular.ttf, NotoSans-Medium.ttf,
+NotoSans-Bold.ttf)
+  Copyright The Noto Project Authors.
+  Licensed under the SIL Open Font License, Version 1.1.
+  Full licence text: assets/fonts/OFL.txt
+  Embedded because the pdf package's built-in fonts cannot render the Turkish
+  characters ç, ğ, ı, İ, ö, ş and ü, and a report that silently drops a letter
+  from a patient's name is not a report.
+
+Dart and Flutter package dependencies keep their own licences; see pubspec.yaml
+and pubspec.lock for the list, and each package's own LICENSE for its terms.

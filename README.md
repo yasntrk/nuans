@@ -96,9 +96,34 @@ python3 -I tools/store/check_copy.py
 - Cihaz başına netlik/hareket eşikleri ölçülmemiş
 - Gri kartın gerçek `Y` değeri veri sayfasından okunmamış
 - Güven skoru ağırlıkları saha verisiyle kalibre edilmemiş
-- `assets/fonts/NotoSans-*.ttf` eklenmeli (lisansı Open Font License)
 - `com.nuans.app` ve `example.invalid` adresleri yer tutucu
 
 ## Lisans
 
-Belirlenmedi.
+**Apache License 2.0** ([`LICENSE`](LICENSE)), yanında bir [`NOTICE`](NOTICE)
+dosyasıyla.
+
+Neden MIT değil de Apache-2.0:
+
+- **NOTICE mekanizması.** Apache-2.0'ın 4(d) maddesi, türev eser dağıtan herkesi
+  `NOTICE` dosyasındaki bildirimleri taşımaya zorunlu kılar. Bu depodaki `NOTICE`
+  üç şey söylüyor: telefon kamerası spektrofotometre değildir, bu yazılım tıbbi
+  cihaz değildir, ve **gönderilen skala L\*a\*b\* değerleri ölçüm değil,
+  doğrulanmamış yer tutucudur.** Üçüncüsü bu projenin en kolay yanlış anlaşılacak
+  yeri; MIT'te bir fork bu uyarıyı sessizce atabilirdi, Apache-2.0'da atamaz.
+  Lisans seçimi burada hukuki bir tercih değil, bilimsel dürüstlüğün forklara
+  taşınmasını sağlayan mekanizma.
+- **Açık patent hibesi** (madde 3). Renk ölçümü ve eşleme yöntemleri patentli bir
+  alan; MIT bu konuda sessizdir. Apache-2.0 katkıcılardan açık patent lisansı
+  alır ve patent davası açan kullanıcının lisansını sona erdirir. Diş hekimliği
+  ürünleri satan şirketlerin ilgi alanına giren bir depo için bu korumanın
+  bedeli yok.
+- **Değişiklik bildirimi** (madde 4(b)). Değiştirilen dosyaların işaretlenmesi
+  gerekir; ölçüm zincirinin hangi halkasının değiştirildiğini bilmek, sonucu
+  yorumlayabilmenin önkoşulu.
+
+İzin verdiği şeyler MIT'le aynı: ticari kullanım, değiştirme, kapalı kaynak
+dağıtım. Tek farkı yukarıdaki üç uyarıyı yanında taşımak zorunda olması.
+
+Fontlar kendi lisanslarını korur: Noto Sans, SIL Open Font License 1.1
+([`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).
