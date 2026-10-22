@@ -15,7 +15,8 @@ PlatformException _createConnectionError(String channelName) {
   );
 }
 
-List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
+List<Object?> wrapResponse(
+    {Object? result, PlatformException? error, bool empty = false}) {
   if (empty) {
     return <Object?>[];
   }
@@ -50,10 +51,13 @@ enum CaptureFormat {
 enum RoiKind {
   /// One of the three bands of the target tooth.
   toothBand,
+
   /// The 18 % neutral gray card in the overlay slot.
   grayCard,
+
   /// A physical shade guide tab held in the same frame (relative mode).
   shadeTab,
+
   /// One patch of a 24-patch colour reference chart (device profiling).
   colorCheckerPatch,
 }
@@ -117,6 +121,7 @@ enum SessionInterruption {
 enum SignalEncoding {
   /// Display-referred, roughly sRGB-encoded. Needs linearising before use.
   displayReferredSrgb,
+
   /// Already linear. No platform currently reports this; the case exists so
   /// that a future linear preview path does not need a contract change.
   linear,
@@ -1129,7 +1134,6 @@ class CameraCapabilities {
   }
 }
 
-
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -1137,79 +1141,79 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is CaptureTier) {
+    } else if (value is CaptureTier) {
       buffer.putUint8(129);
       writeValue(buffer, value.index);
-    }    else if (value is CaptureFormat) {
+    } else if (value is CaptureFormat) {
       buffer.putUint8(130);
       writeValue(buffer, value.index);
-    }    else if (value is RoiKind) {
+    } else if (value is RoiKind) {
       buffer.putUint8(131);
       writeValue(buffer, value.index);
-    }    else if (value is ToothRegion) {
+    } else if (value is ToothRegion) {
       buffer.putUint8(132);
       writeValue(buffer, value.index);
-    }    else if (value is FrameRejectReason) {
+    } else if (value is FrameRejectReason) {
       buffer.putUint8(133);
       writeValue(buffer, value.index);
-    }    else if (value is CameraErrorCode) {
+    } else if (value is CameraErrorCode) {
       buffer.putUint8(134);
       writeValue(buffer, value.index);
-    }    else if (value is SessionInterruption) {
+    } else if (value is SessionInterruption) {
       buffer.putUint8(135);
       writeValue(buffer, value.index);
-    }    else if (value is SignalEncoding) {
+    } else if (value is SignalEncoding) {
       buffer.putUint8(136);
       writeValue(buffer, value.index);
-    }    else if (value is CaptureStage) {
+    } else if (value is CaptureStage) {
       buffer.putUint8(137);
       writeValue(buffer, value.index);
-    }    else if (value is NormalizedRect) {
+    } else if (value is NormalizedRect) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is RoiRequest) {
+    } else if (value is RoiRequest) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is SamplingSettings) {
+    } else if (value is SamplingSettings) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is CaptureSettings) {
+    } else if (value is CaptureSettings) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is CaptureRequest) {
+    } else if (value is CaptureRequest) {
       buffer.putUint8(142);
       writeValue(buffer, value.encode());
-    }    else if (value is PreviewConfig) {
+    } else if (value is PreviewConfig) {
       buffer.putUint8(143);
       writeValue(buffer, value.encode());
-    }    else if (value is PreviewSession) {
+    } else if (value is PreviewSession) {
       buffer.putUint8(144);
       writeValue(buffer, value.encode());
-    }    else if (value is ExposureState) {
+    } else if (value is ExposureState) {
       buffer.putUint8(145);
       writeValue(buffer, value.encode());
-    }    else if (value is DngColorMetadata) {
+    } else if (value is DngColorMetadata) {
       buffer.putUint8(146);
       writeValue(buffer, value.encode());
-    }    else if (value is RoiSample) {
+    } else if (value is RoiSample) {
       buffer.putUint8(147);
       writeValue(buffer, value.encode());
-    }    else if (value is FrameQuality) {
+    } else if (value is FrameQuality) {
       buffer.putUint8(148);
       writeValue(buffer, value.encode());
-    }    else if (value is CaptureResult) {
+    } else if (value is CaptureResult) {
       buffer.putUint8(149);
       writeValue(buffer, value.encode());
-    }    else if (value is PreviewMetrics) {
+    } else if (value is PreviewMetrics) {
       buffer.putUint8(150);
       writeValue(buffer, value.encode());
-    }    else if (value is CaptureProgress) {
+    } else if (value is CaptureProgress) {
       buffer.putUint8(151);
       writeValue(buffer, value.encode());
-    }    else if (value is CameraError) {
+    } else if (value is CameraError) {
       buffer.putUint8(152);
       writeValue(buffer, value.encode());
-    }    else if (value is CameraCapabilities) {
+    } else if (value is CameraCapabilities) {
       buffer.putUint8(153);
       writeValue(buffer, value.encode());
     } else {
@@ -1220,64 +1224,64 @@ class _PigeonCodec extends StandardMessageCodec {
   @override
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
-      case 129: 
+      case 129:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : CaptureTier.values[value];
-      case 130: 
+      case 130:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : CaptureFormat.values[value];
-      case 131: 
+      case 131:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : RoiKind.values[value];
-      case 132: 
+      case 132:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : ToothRegion.values[value];
-      case 133: 
+      case 133:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : FrameRejectReason.values[value];
-      case 134: 
+      case 134:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : CameraErrorCode.values[value];
-      case 135: 
+      case 135:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : SessionInterruption.values[value];
-      case 136: 
+      case 136:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : SignalEncoding.values[value];
-      case 137: 
+      case 137:
         final int? value = readValue(buffer) as int?;
         return value == null ? null : CaptureStage.values[value];
-      case 138: 
+      case 138:
         return NormalizedRect.decode(readValue(buffer)!);
-      case 139: 
+      case 139:
         return RoiRequest.decode(readValue(buffer)!);
-      case 140: 
+      case 140:
         return SamplingSettings.decode(readValue(buffer)!);
-      case 141: 
+      case 141:
         return CaptureSettings.decode(readValue(buffer)!);
-      case 142: 
+      case 142:
         return CaptureRequest.decode(readValue(buffer)!);
-      case 143: 
+      case 143:
         return PreviewConfig.decode(readValue(buffer)!);
-      case 144: 
+      case 144:
         return PreviewSession.decode(readValue(buffer)!);
-      case 145: 
+      case 145:
         return ExposureState.decode(readValue(buffer)!);
-      case 146: 
+      case 146:
         return DngColorMetadata.decode(readValue(buffer)!);
-      case 147: 
+      case 147:
         return RoiSample.decode(readValue(buffer)!);
-      case 148: 
+      case 148:
         return FrameQuality.decode(readValue(buffer)!);
-      case 149: 
+      case 149:
         return CaptureResult.decode(readValue(buffer)!);
-      case 150: 
+      case 150:
         return PreviewMetrics.decode(readValue(buffer)!);
-      case 151: 
+      case 151:
         return CaptureProgress.decode(readValue(buffer)!);
-      case 152: 
+      case 152:
         return CameraError.decode(readValue(buffer)!);
-      case 153: 
+      case 153:
         return CameraCapabilities.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1291,9 +1295,11 @@ class ShadeCameraHostApi {
   /// Constructor for [ShadeCameraHostApi].  The [binaryMessenger] named argument is
   /// available for dependency injection.  If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  ShadeCameraHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+  ShadeCameraHostApi(
+      {BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
       : pigeonVar_binaryMessenger = binaryMessenger,
-        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+        pigeonVar_messageChannelSuffix =
+            messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
 
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
@@ -1303,8 +1309,10 @@ class ShadeCameraHostApi {
   /// Selects the main rear 1x lens, probes it and decides the tier. Ultra-wide
   /// lenses and digital zoom are never selected.
   Future<CameraCapabilities> initialize() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.initialize$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.initialize$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1331,8 +1339,10 @@ class ShadeCameraHostApi {
 
   /// Starts the preview and the metrics stream.
   Future<PreviewSession> startPreview(PreviewConfig config) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.startPreview$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.startPreview$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1359,8 +1369,10 @@ class ShadeCameraHostApi {
 
   /// Applies new live ROI rectangles after the user drags the overlay.
   Future<void> updatePreviewRois(PreviewConfig config) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.updatePreviewRois$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.updatePreviewRois$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1381,8 +1393,10 @@ class ShadeCameraHostApi {
   }
 
   Future<void> stopPreview() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.stopPreview$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.stopPreview$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1404,8 +1418,10 @@ class ShadeCameraHostApi {
 
   /// Runs autofocus at a sensor-normalised point, then locks focus there.
   Future<void> focusAndLockAt(double x, double y) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.focusAndLockAt$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.focusAndLockAt$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1430,8 +1446,10 @@ class ShadeCameraHostApi {
   /// white balance at fixed gains. Disables flash and all computational
   /// pipelines (HDR, night mode, fusion).
   Future<ExposureState> lockCaptureParameters(CaptureSettings settings) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.lockCaptureParameters$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.lockCaptureParameters$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1457,8 +1475,10 @@ class ShadeCameraHostApi {
   }
 
   Future<void> unlockCaptureParameters() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.unlockCaptureParameters$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.unlockCaptureParameters$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1481,8 +1501,10 @@ class ShadeCameraHostApi {
   /// Captures the burst, selects frames, reduces every ROI and retains the
   /// accepted frames under `captureId` until `releaseCapture`.
   Future<CaptureResult> capture(CaptureRequest request) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.capture$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.capture$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1509,15 +1531,18 @@ class ShadeCameraHostApi {
 
   /// Re-reduces one ROI from the retained frames of `captureId`, so dragging an
   /// ROI on the analysis screen never requires a new acquisition.
-  Future<RoiSample> resampleRoi(String captureId, RoiRequest roi, SamplingSettings sampling) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.resampleRoi$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+  Future<RoiSample> resampleRoi(
+      String captureId, RoiRequest roi, SamplingSettings sampling) async {
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.resampleRoi$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final List<Object?>? pigeonVar_replyList =
-        await pigeonVar_channel.send(<Object?>[captureId, roi, sampling]) as List<Object?>?;
+    final List<Object?>? pigeonVar_replyList = await pigeonVar_channel
+        .send(<Object?>[captureId, roi, sampling]) as List<Object?>?;
     if (pigeonVar_replyList == null) {
       throw _createConnectionError(pigeonVar_channelName);
     } else if (pigeonVar_replyList.length > 1) {
@@ -1538,8 +1563,10 @@ class ShadeCameraHostApi {
 
   /// Frees the retained frames. Mandatory when leaving the analysis screen.
   Future<void> releaseCapture(String captureId) async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.releaseCapture$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.releaseCapture$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1560,8 +1587,10 @@ class ShadeCameraHostApi {
   }
 
   Future<void> dispose() async {
-    final String pigeonVar_channelName = 'dev.flutter.pigeon.nuans.ShadeCameraHostApi.dispose$pigeonVar_messageChannelSuffix';
-    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+    final String pigeonVar_channelName =
+        'dev.flutter.pigeon.nuans.ShadeCameraHostApi.dispose$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel =
+        BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
@@ -1595,18 +1624,26 @@ abstract class ShadeCameraFlutterApi {
 
   void onSessionInterrupted(SessionInterruption reason);
 
-  static void setUp(ShadeCameraFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
-    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  static void setUp(
+    ShadeCameraFlutterApi? api, {
+    BinaryMessenger? binaryMessenger,
+    String messageChannelSuffix = '',
+  }) {
+    messageChannelSuffix =
+        messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onPreviewMetrics$messageChannelSuffix', pigeonChannelCodec,
+      final BasicMessageChannel<
+          Object?> pigeonVar_channel = BasicMessageChannel<
+              Object?>(
+          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onPreviewMetrics$messageChannelSuffix',
+          pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onPreviewMetrics was null.');
+              'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onPreviewMetrics was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final PreviewMetrics? arg_metrics = (args[0] as PreviewMetrics?);
           assert(arg_metrics != null,
@@ -1616,22 +1653,26 @@ abstract class ShadeCameraFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+                error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCaptureProgress$messageChannelSuffix', pigeonChannelCodec,
+      final BasicMessageChannel<
+          Object?> pigeonVar_channel = BasicMessageChannel<
+              Object?>(
+          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCaptureProgress$messageChannelSuffix',
+          pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCaptureProgress was null.');
+              'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCaptureProgress was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final CaptureProgress? arg_progress = (args[0] as CaptureProgress?);
           assert(arg_progress != null,
@@ -1641,22 +1682,26 @@ abstract class ShadeCameraFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+                error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCameraError$messageChannelSuffix', pigeonChannelCodec,
+      final BasicMessageChannel<
+          Object?> pigeonVar_channel = BasicMessageChannel<
+              Object?>(
+          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCameraError$messageChannelSuffix',
+          pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCameraError was null.');
+              'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onCameraError was null.');
           final List<Object?> args = (message as List<Object?>?)!;
           final CameraError? arg_error = (args[0] as CameraError?);
           assert(arg_error != null,
@@ -1666,24 +1711,29 @@ abstract class ShadeCameraFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+                error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }
     }
     {
-      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onSessionInterrupted$messageChannelSuffix', pigeonChannelCodec,
+      final BasicMessageChannel<
+          Object?> pigeonVar_channel = BasicMessageChannel<
+              Object?>(
+          'dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onSessionInterrupted$messageChannelSuffix',
+          pigeonChannelCodec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onSessionInterrupted was null.');
+              'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onSessionInterrupted was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final SessionInterruption? arg_reason = (args[0] as SessionInterruption?);
+          final SessionInterruption? arg_reason =
+              (args[0] as SessionInterruption?);
           assert(arg_reason != null,
               'Argument for dev.flutter.pigeon.nuans.ShadeCameraFlutterApi.onSessionInterrupted was null, expected non-null SessionInterruption.');
           try {
@@ -1691,8 +1741,9 @@ abstract class ShadeCameraFlutterApi {
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);
-          }          catch (e) {
-            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          } catch (e) {
+            return wrapResponse(
+                error: PlatformException(code: 'error', message: e.toString()));
           }
         });
       }

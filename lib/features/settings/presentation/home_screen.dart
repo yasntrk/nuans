@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nuans/core/branding/nuans_mark_badge.dart';
 import 'package:nuans/l10n/app_localizations.dart';
 import 'package:shade_core/shade_core.dart';
 
@@ -13,7 +14,13 @@ class HomeScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text(strings.appName),
+        title: Row(
+          children: [
+            const NuansMarkBadge(size: 26),
+            const SizedBox(width: 10),
+            Text(strings.appName),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
