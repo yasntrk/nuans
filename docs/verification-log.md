@@ -252,3 +252,119 @@ taşması öyle bulundu.
   testler yazılır yazılmaz koşabilir.
 - **Gerçek cihazda ölçüm yapılmadı.** Kamera yolu derlenir ama bir telefonda
   çalıştırılmadı; saha doğrulaması (Aşama 7 §2) hiç başlamadı.
+
+---
+
+## Üçüncü tur: APK telefona kuruldu (2026-10-22)
+
+Önceki iki tur "araç zincirini kurup koşturmak" turlarıydı. Bu tur farklı: kod
+bir telefona kuruldu ve **kullanıcı denedi**. İki hata bildirdi ve ikisi de
+gerçekti.
+
+### Bildirilen 1: "herhangi bi menüye tıkladığım zaman geri ana menüye dönemiyorum"
+
+Sebep: her navigasyon çağrısı `context.go()` kullanıyordu. `go`, üst düzey bir
+rota için navigasyon yığınını **değiştirir**; geriye gidilecek sayfa kalmaz,
+sistem geri tuşu boş yığın bulur ve uygulamayı kapatır.
+
+Düzeltme: beşi `home_screen.dart`'ta, biri `onboarding_screen.dart`'ta olmak
+üzere hepsi `push`/`pop` oldu; kural `app_router.dart`'ın doküman yorumuna
+yazıldı.
+
+Nöbetçi: `test/navigation/back_navigation_test.dart`. Kritik iddia
+`Navigator.canPop` — `go` ile `false`, `push` ile `true`. Yalnızca "ekran
+açıldı mı" diye bakan bir test hatanın tamamı boyunca geçerdi. Test ayrıca
+gerçek sistem geri tuşunu kullanıyor (`flutter/navigation` kanalına `popRoute`),
+AppBar okunu değil, çünkü kullanıcı ona basmıştı.
+
+Doğrulandı: düzeltme geri alınıp test koşturuldu — 7 testin 6'sı "nothing to go
+back to" diyerek düştü; düzeltmeyle hepsi geçti.
+
+### Bu düzeltmeyi yaparken kendi soktuğum regresyon
+
+`push()` değişimini kabuk heredoc'u ile yaparken `'/result/${material.name}'`
+içindeki dolar kaçtı ve `'/result/\${material.name}'` oldu — Dart'ta geçerli bir
+kaçış, yani derleniyor, ama rota literal `${material.name}` metni oluyor ve üç
+analiz kartı da çöküyordu. HEAD'deki hali doğruydu, kıran bendim. `git show
+HEAD:dosya` ile karşılaştırınca görüldü. Dersi: tırnaksız heredoc'a Dart
+dizgesi yazılmaz; ve her metin değişiminin uygulandığı iddia edilmeden önce
+doğrulanmalı (bu turda iki değişim sessizce uygulanmamıştı, çünkü aradığım metni
+`dart format` araya girip değiştirmişti).
+
+### Bildirilen 2: "kameraya bağlanmıyor görüntü gelmedi"
+
+Burada **üç** ayrı hata vardı; hepsinin kökü kamera katmanının her şeyi tek bir
+thread'de yapmasıydı. Ayrıntısı
+[ADR-0002](adr/0002-android-camera-threading.md)'de; özeti:
+
+1. **Kilitlenme.** `openCamera` ve `configureSession`, geri çağrıyı teslim
+   etmesi gereken thread üzerinde `latch.await()` ile bekliyordu. Kamera asla
+   açılmadı. Bu, kullanıcının gördüğü belirtinin doğrudan sebebi.
+2. **Her turda eski kare.** Pozlama çözücüsü `Thread.sleep(150)` sonrası son
+   kareyi okuyordu; kareyi yazan dinleyici aynı thread'deydi, dolayısıyla yeni
+   kare o okuma sırasında henüz işlenmemişti.
+3. **Olaylar istisna fırlatırdı.** Dart'a gönderilen her olay arka plan
+   thread'indendi; `FlutterJNI.dispatchPlatformMessage` ilk iş olarak
+   `ensureRunningOnMainThread()` çağırıyor.
+
+(3) iddiası ezberden söylenmedi. Makinede `javap` yok, Flutter gömülü jar'ında
+kaynak yok; bu yüzden sınıf dosyasını ayrıştıran küçük bir Python okuyucu
+yazıldı ve `dispatchPlatformMessage`'ın çağrı listesi okundu. İlk çağrı
+`ensureRunningOnMainThread`. Aynı okuma `invokePlatformMessageResponseCallback`
+için yapıldı: orada böyle bir çağrı yok, bir `ReentrantReadWriteLock` okuma
+kilidi var — bu yüzden host çağrılarının **cevapları** ana thread'e aktarılmıyor,
+yalnızca olaylar aktarılıyor. Ayrımı ölçmek, hepsini aktarmaktan iyiydi.
+
+### Kullanıcının asıl şikâyetinin kalan yarısı
+
+Kilitlenme düzeltildikten sonra bile Flutter tarafı kamerayı **hiç**
+başlatmıyordu: ana menüdeki "Ölçüm" girişi, doküman yorumunda "without a camera
+behind it" yazan bir maket ekrana gidiyordu. Yani kullanıcı kamera sanıp açtı ve
+hiçbir şey görmedi — haklıydı.
+
+Eklenen: gerçek bir canlı önizleme ekranı, bir izin akışı ve sözleşmede eksik
+olan iki şey.
+
+- `ShadeCameraPlugin` artık `ActivityAware`; `initialize()` gerekirse izin
+  diyaloğunu açıyor. İzin hiç istenmiyordu.
+- `PreviewSession` sözleşmeye eklendi: doku kimliği, kare boyutu, dönüş.
+  Boyut gerekliydi çünkü önizleme 16:9 seçilebilirken sensör 4:3 olabiliyor;
+  dönüş gerekliydi çünkü kamera kareyi sensör yöneliminde yazıyor. İkisi de
+  bindirmenin, native'in ölçtüğü bölgenin üstüne düşüp düşmediğini belirliyor.
+- `PreviewGeometry`, ekran ve kare koordinatları arasındaki dönüşümü saf
+  aritmetik olarak taşıyor ve **cihazsız test edilebiliyor**: yedi test, dört
+  dönüş için tersinirlik ve birim kare içinde kalma dahil.
+
+Bu sırada kendi doküman yorumumun uygulanmamış olduğu test tarafından yakalandı:
+"ilk yapılandırma, önizleme biçimini bildirir bildirmez değiştirilir" yazmıştım
+ama değiştiren kodu yazmamıştım. ROI'ler ekran koordinatlarında kalıyordu, yani
+native yanlış bölgeyi ölçerdi. Test `host.configs`'un iki eleman olmasını ve
+ikincisinin birincisinin devriği olmasını istiyor.
+
+### Sayılar
+
+| | Önce | Sonra |
+|---|---|---|
+| Uygulama testleri | 89 | 111 |
+| shade_core testleri | 296 | 296 |
+| `flutter analyze --fatal-infos` | temiz | temiz |
+| `dart analyze --fatal-infos` (shade_core) | temiz | temiz |
+| Pigeon↔Kotlin, Pigeon↔Swift denetleyicileri | geçiyor | geçiyor |
+| Release APK | 55 MB | 55 MB |
+
+### Hâlâ doğrulanmadı
+
+`adb devices` boş: bu makinede bağlı Android cihaz yok. Dolayısıyla **kamera
+kodunun hiçbir satırı bir cihazda koşmadı.** Kilitlenmenin sebebi kesin ve
+düzeltmesi derleniyor; ama "telefonda görüntü geliyor" iddiası yapılamaz.
+Cihazda sınanması gerekenler:
+
+- önizlemenin dönüşü (sensör yönelimi kullanılıyor; çoğu telefonda 90 derece,
+  hepsinde değil)
+- iOS'un bildirdiği sabit 90 derece (varsayım I10) — iOS ayrıca hiç
+  derlenmedi, Xcode projesi yok
+- izin diyaloğunun akışı ve reddedildiğinde dönen hata
+- kare akışının gerçekten başlaması; ekranın "Kamera açıldı ama kare gelmiyor."
+  mesajı tam bu durumu ayırt etmek için var
+- `lockCaptureParameters`'ın iki kare beklemesinin gerçek bir pozlama çözümünde
+  yakınsaması

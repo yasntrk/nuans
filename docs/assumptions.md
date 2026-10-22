@@ -145,3 +145,28 @@ Ayrıntılı döküm: [doğrulama günlüğü](verification-log.md).
 | H12 | `RadioGroup` kullanılıyor, `RadioListTile.groupValue`/`onChanged` değil. | Flutter 3.32'den beri deprecated; yepyeni kodda deprecated API kullanmak tercih değil hata. |
 | H13 | `XyzColor.weightedMean` statik metot yerine factory constructor. | Lint haklıydı ve çağrı sözdizimi değişmedi. |
 | H14 | Release derlemesi, `android/key.properties` gelene kadar debug anahtarıyla imzalanıyor. | Telefona kurulur, Play'e yüklenemez — gözden geçirilmemiş bir derleme için doğru olan yön bu. |
+
+## APK telefona kurulduktan sonra (2026-10-22)
+
+Kullanıcının bildirdiği iki hata — "kameraya bağlanmıyor, görüntü gelmedi" ve
+"herhangi bir menüye tıklayınca geri dönemiyorum, uygulamadan çıkıyor" — bu
+bölümün tamamının sebebi. İkisi de statik incelemeyle görülmemişti; biri
+uygulamayı çalıştırmakla, diğeri o hatayı ararken kodu okumakla bulundu.
+
+| # | Varsayım | Gerekçe |
+|---|---|---|
+| I1 | Alt ekranlara `context.push`, asla `context.go` ile gidilir; kural `app_router.dart`'ın başında yazılı. | `go` üst düzey bir rota için yığını **değiştirir**; geri gidilecek sayfa kalmaz ve sistem geri tuşu uygulamayı kapatır. Bildirilen hata tam buydu. `push` ayrıca AppBar'a geri okunu hiçbir şey bağlamadan kazandırır. |
+| I2 | `createAppRouter()` fonksiyon, tek bir global `GoRouter` değil. | Paylaşılan router, bir testin bıraktığı rotayı sonrakine taşır — navigasyon regresyonunun saklanma yolu tam olarak budur. |
+| I3 | Android kamera katmanı üç thread kullanır: kontrol, çerçeve geri çağrıları, kare kopyalama. | [ADR-0002](adr/0002-android-camera-threading.md). Tek thread kilitleniyordu. |
+| I4 | Platform kanalına gönderilen olaylar ana thread'e aktarılır; host çağrılarının cevapları aktarılmaz. | `FlutterJNI.dispatchPlatformMessage` ilk iş olarak `ensureRunningOnMainThread()` çağırıyor (sınıf dosyası ayrıştırılarak doğrulandı); `invokePlatformMessageResponseCallback` ise okuma kilidi alıyor ve thread şartı koymuyor. Yani olaylar istisna fırlatırdı, cevaplar fırlatmaz. |
+| I5 | Kameranın açılması 5 s, oturum yapılandırması 5 s, bir ayarın kareye yansıması 1,5 s ile sınırlı. | Camera2 bu çağrılar için üst sınır vermiyor; başka bir uygulamanın tuttuğu cihaz geri çağrıyı hiç cevaplamayabilir. Sağlıklı bir açılış bunların çok altında kalır, dolayısıyla aşılması bir arızadır ve kullanıcıya söylenmesi beklemekten iyidir. |
+| I6 | Pozlama çözücüsü sabit bir uyku yerine **iki** yeni kare bekler. | İlk gelen kare yeni istek yola çıktığında zaten pozlanmış olabilir; yalnızca ikincisi yeni ayarları kesin taşır. Eski kod `Thread.sleep(150)` sonrası son kareyi okuyordu ve o kare her turda öncekiydi — çözücü hiçbir şeye yakınsıyordu. |
+| I7 | Kamera izni `initialize()` içinde istenir, sözleşmeye ayrı bir metot eklenmez. | Dart tarafı tek bir "bana kamera ver" çağrısı görür ve her platform kendi usulüyle sorar. Eklenti bu yüzden `ActivityAware`: Android izni başka hiçbir yerden isteyemez. |
+| I8 | İzin diyaloğu için `androidx` değil çerçeve API'leri (`Context.checkSelfPermission`, `Activity.requestPermissions`) kullanılır. | `minSdk` 29; bu API'ler API 23'ten beri var. Bir bağımlılık eklememek için yeterli sebep. |
+| I9 | `PreviewSession` sözleşmeye eklendi: doku kimliği, kare boyutu ve dönüş. | Sözleşmedeki her `NormalizedRect` **kareye** göre normalize; bindirme ise **ekrana** göre. Kamera kareyi sensör yöneliminde yazar. Boyut ve dönüş bilinmezse bindirme, native'in ölçtüğü yerden başka bir yere düşer — hekimin göremeyeceği ve düzeltemeyeceği tek hizalama hatası bu. |
+| I10 | iOS dönüşü 90 derece olarak bildiriliyor. | AVFoundation, bağlantıya aksi söylenmedikçe tamponları sensör yöneliminde verir ve bu kodda söylenmiyor; iPhone arka kamerasında o yönelim landscape-right. **Cihazda doğrulanmadı.** |
+| I11 | ROI'ler önizleme başladıktan sonra bir kez daha gönderilir. | Kare biçimi `startPreview` cevaplayana kadar bilinmiyor, yani ilk yapılandırma zorunlu olarak ekran koordinatlarında gidiyor. İkinci gönderim onu kare koordinatlarına çeviriyor. Bu güncelleme başarısız olursa önizleme düşürülür: yanlış bölgenin sayılarını göstermek, hata göstermekten kötüdür. |
+| I12 | Canlı önizleme ekranında çekim düğmesi **yok**. | Cihaz profili olmadan kamera değerlerini renge çeviren matris yok; alınan ölçüm gösterilebilir ama güvenilemez. Profil gerektirmeyen okumalar (netlik, hareket, kırpılma, kart düzgünlüğü, ISO, pozlama) gösteriliyor; renge dayananlar "profil gerekiyor" diye işaretli — sahte yeşil vermemek için `LiveCheckMachine` bu ekranda hiç kullanılmıyor, çünkü renk kararlarını `issues` kümesinden alıyor ve profilsiz o küme boş kalır. |
+| I13 | Kamerasız bindirme ekranı kaldı ama adı "Bindirme Tezgâhı" oldu. | Faydası var: yerleşimi ve trafik ışıklarını kamerasız denemeye yarıyor. Ama ana menüde "Ölçüm" diye durması, kullanıcının kamera sanıp açtığı ve hiçbir şey görmediği ekran olmasının sebebiydi. |
+| I14 | Telif sahibi `NOTICE` içinde "the Nüans authors" olarak yazılı. | Deponun git kimliğinde tam ad yok; hukuki bir metne tahmin ettiğim bir adı yazmam doğru olmaz. Dağıtımdan önce değiştirilmeli, dosya bunu söylüyor. |
+| I15 | Lisans Apache-2.0, yanında `NOTICE`. | Gerekçesi README'nin Lisans bölümünde: 4(d) maddesi, skala değerlerinin ölçüm olmadığı uyarısını forklara taşımaya zorluyor. MIT'te bir fork bu uyarıyı sessizce atabilirdi. |

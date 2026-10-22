@@ -314,6 +314,8 @@ sequenceDiagram
     NA-->>GW: CameraCapabilities - tier full or limited
     GW-->>CS: capabilities as shade_core types
     CS->>GW: startPreview with ROI rects
+    NA-->>GW: PreviewSession - texture id, frame size, rotation
+    CS->>GW: updatePreviewRois - rects now in frame coordinates
     loop her 100 ms
         NA-->>GW: PreviewMetrics
         GW->>CO: GrayCardValidator - FrameSelection policy
