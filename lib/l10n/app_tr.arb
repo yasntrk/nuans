@@ -310,6 +310,78 @@
   "@shutterReady": {
     "description": "Shutter enabled state."
   },
+  "liveCameraTitle": "Canlı Önizleme",
+  "@liveCameraTitle": {
+    "description": "Live camera screen title."
+  },
+  "overlayWorkbenchTitle": "Bindirme Tezgâhı",
+  "@overlayWorkbenchTitle": {
+    "description": "Title of the screen that shows the overlay without a camera."
+  },
+  "overlayWorkbenchSubtitle": "Kamerasız: yerleşimi ve trafik ışıklarını denemek için",
+  "@overlayWorkbenchSubtitle": {
+    "description": "Says plainly that this screen shows no camera image."
+  },
+  "liveCameraStarting": "Kamera başlatılıyor…",
+  "@liveCameraStarting": {
+    "description": "Shown while the camera is being opened."
+  },
+  "liveCameraRetry": "Tekrar dene",
+  "@liveCameraRetry": {
+    "description": "Retries opening the camera."
+  },
+  "liveCameraPermissionBody": "Ayarlar ▸ Uygulamalar ▸ Nüans ▸ İzinler''den kamerayı açıp tekrar deneyin.",
+  "@liveCameraPermissionBody": {
+    "description": "Explains how to grant the camera permission."
+  },
+  "liveCameraUncalibrated": "Bu cihazın profili yok. Önizleme ve hizalama çalışır; renge dayanan kontroller ve çekim kapalıdır.",
+  "@liveCameraUncalibrated": {
+    "description": "Explains what the live preview can and cannot do without a device profile."
+  },
+  "liveMetricsTitle": "Canlı ölçümler",
+  "@liveMetricsTitle": {
+    "description": "Section title."
+  },
+  "liveMetricNeedsProfile": "profil gerekiyor",
+  "@liveMetricNeedsProfile": {
+    "description": "Shown instead of a value that cannot be computed without a device profile."
+  },
+  "liveMetricSharpness": "Netlik (Laplace varyansı)",
+  "@liveMetricSharpness": {
+    "description": "Live metric label."
+  },
+  "liveMetricMotion": "Hareket",
+  "@liveMetricMotion": {
+    "description": "Live metric label."
+  },
+  "liveMetricToothClipping": "Dişte kırpılma",
+  "@liveMetricToothClipping": {
+    "description": "Live metric label."
+  },
+  "liveMetricCardUniformity": "Kart düzgünlüğü",
+  "@liveMetricCardUniformity": {
+    "description": "Live metric label."
+  },
+  "liveMetricIso": "ISO",
+  "@liveMetricIso": {
+    "description": "Live metric label."
+  },
+  "liveMetricExposure": "Pozlama",
+  "@liveMetricExposure": {
+    "description": "Live metric label."
+  },
+  "liveMetricLocked": "Kilitli",
+  "@liveMetricLocked": {
+    "description": "Live metric label for the lock state."
+  },
+  "liveMetricUnlocked": "Otomatik",
+  "@liveMetricUnlocked": {
+    "description": "Live metric label for the lock state."
+  },
+  "liveCameraNoFrames": "Kamera açıldı ama kare gelmiyor.",
+  "@liveCameraNoFrames": {
+    "description": "Shown when the preview starts but no metrics follow."
+  },
   "clinicalTipHydration": "Ölçümü seansın başında alın: dehidrasyon dişi olduğundan daha açık gösterir.",
   "@clinicalTipHydration": {
     "description": "Clinical hint on the camera screen."

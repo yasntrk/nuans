@@ -38,7 +38,7 @@ final class ShadeCameraPlugin: NSObject, ShadeCameraHostApi {
 
     func startPreview(
         config: PreviewConfig,
-        completion: @escaping (Result<Int64, Error>) -> Void
+        completion: @escaping (Result<PreviewSession, Error>) -> Void
     ) {
         controller.startPreview(config: config, completion: bridge(completion))
     }

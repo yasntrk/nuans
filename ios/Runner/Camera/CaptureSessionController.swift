@@ -276,11 +276,11 @@ final class CaptureSessionController: NSObject {
 
     func startPreview(
         config: PreviewConfig,
-        completion: @escaping (Result<Int64, Error>) -> Void
+        completion: @escaping (Result<PreviewSession, Error>) -> Void
     ) {
         sessionQueue.async { [weak self] in
             guard let self else { return }
-            guard self.device != nil else {
+            guard let device = self.device else {
                 completion(.failure(
                     ShadeCameraFailure(.configurationFailed, "initialize has not run")
                 ))
@@ -294,7 +294,23 @@ final class CaptureSessionController: NSObject {
             if !self.session.isRunning {
                 self.session.startRunning()
             }
-            completion(.success(self.previewTexture?.textureId ?? 0))
+            // The active format's video dimensions, not the photo dimensions:
+            // the texture carries what the video output produces, and that is
+            // what every NormalizedRect in the contract is normalised against.
+            let dimensions = CMVideoFormatDescriptionGetDimensions(
+                device.activeFormat.formatDescription
+            )
+            // AVFoundation hands buffers over in the sensor's orientation
+            // unless the connection is told otherwise, and this one is not.
+            // Landscape-right is that orientation on every iPhone rear
+            // camera, so an upright device needs a quarter turn.
+            let rotation: Int64 = 90
+            completion(.success(PreviewSession(
+                textureId: self.previewTexture?.textureId ?? 0,
+                previewWidth: Int64(dimensions.width),
+                previewHeight: Int64(dimensions.height),
+                displayRotationDegrees: rotation
+            )))
         }
     }
 

@@ -1,8 +1,14 @@
 package com.nuans.app.camera
 
+import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.camera2.CameraManager
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
 
 /**
@@ -13,11 +19,28 @@ import io.flutter.view.TextureRegistry
  * logic and no colour logic lives here, which is what keeps the parts worth
  * testing reachable without a `FlutterPlugin` binding.
  */
-class ShadeCameraPlugin : FlutterPlugin, ShadeCameraHostApi {
+class ShadeCameraPlugin :
+    FlutterPlugin,
+    ActivityAware,
+    ShadeCameraHostApi,
+    PluginRegistry.RequestPermissionsResultListener {
 
     private var controller: Camera2SessionController? = null
+    private var appContext: Context? = null
+    private var activityBinding: ActivityPluginBinding? = null
+
+    /**
+     * The caller waiting for the user's answer to the permission dialog.
+     *
+     * Held rather than queued: the dialog is modal, so there can only ever be
+     * one outstanding request, and a second [initialize] arriving while it is
+     * up is a programming error on the Dart side rather than something to
+     * serialise.
+     */
+    private var pendingPermission: ((Boolean) -> Unit)? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        appContext = binding.applicationContext
         val manager = binding.applicationContext
             .getSystemService(Context.CAMERA_SERVICE) as CameraManager
         val created = Camera2SessionController(
@@ -32,16 +55,110 @@ class ShadeCameraPlugin : FlutterPlugin, ShadeCameraHostApi {
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         controller?.dispose {}
         controller = null
+        appContext = null
         ShadeCameraHostApi.setUp(binding.binaryMessenger, null)
+    }
+
+    // region ActivityAware
+    //
+    // An Activity is needed for one thing only: Android can ask the user for
+    // the camera permission from nowhere else. The camera itself runs off the
+    // application context, so losing the Activity on a configuration change
+    // does not interrupt a capture.
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activityBinding = binding
+        binding.addRequestPermissionsResultListener(this)
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) =
+        onAttachedToActivity(binding)
+
+    override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
+
+    override fun onDetachedFromActivity() {
+        activityBinding?.removeRequestPermissionsResultListener(this)
+        activityBinding = null
+        // Nobody can answer the dialog any more, so release the waiter rather
+        // than leaving the Dart side without a reply.
+        pendingPermission?.also { pendingPermission = null }?.invoke(false)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ): Boolean {
+        if (requestCode != CAMERA_PERMISSION_REQUEST) return false
+        val waiting = pendingPermission ?: return true
+        pendingPermission = null
+        waiting(
+            grantResults.isNotEmpty() &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED,
+        )
+        return true
+    }
+
+    // endregion
+
+    /**
+     * Runs [onResult] once the camera permission is known to be granted or
+     * refused, asking the user if it has not been decided yet.
+     *
+     * Part of [initialize] rather than a method of its own on the host API, so
+     * the Dart side keeps one call that means "give me a camera" and each
+     * platform asks in its own way.
+     */
+    private fun ensureCameraPermission(onResult: (Boolean) -> Unit) {
+        val context = appContext
+        if (context == null) {
+            onResult(false)
+            return
+        }
+        if (
+            context.checkSelfPermission(Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            onResult(true)
+            return
+        }
+        val activity: Activity? = activityBinding?.activity
+        if (activity == null || pendingPermission != null) {
+            onResult(false)
+            return
+        }
+        pendingPermission = onResult
+        activity.requestPermissions(
+            arrayOf(Manifest.permission.CAMERA),
+            CAMERA_PERMISSION_REQUEST,
+        )
     }
 
     // region ShadeCameraHostApi
 
     override fun initialize(callback: (Result<CameraCapabilities>) -> Unit) =
-        withController(callback) { it.initialize(bridge(callback)) }
+        withController(callback) { active ->
+            ensureCameraPermission { granted ->
+                if (granted) {
+                    active.initialize(bridge(callback))
+                } else {
+                    callback(
+                        Result.failure(
+                            ShadeCameraFailure(
+                                CameraErrorCode.PERMISSION_DENIED,
+                                "the camera permission was not granted",
+                                recoverable = true,
+                            ).toBridged(),
+                        ),
+                    )
+                }
+            }
+        }
 
-    override fun startPreview(config: PreviewConfig, callback: (Result<Long>) -> Unit) =
-        withController(callback) { it.startPreview(config, bridge(callback)) }
+    override fun startPreview(
+        config: PreviewConfig,
+        callback: (Result<PreviewSession>) -> Unit,
+    ) = withController(callback) { it.startPreview(config, bridge(callback)) }
 
     override fun updatePreviewRois(
         config: PreviewConfig,
@@ -125,3 +242,11 @@ class ShadeCameraPlugin : FlutterPlugin, ShadeCameraHostApi {
         )
     }
 }
+
+/**
+ * Request code for the camera permission dialog.
+ *
+ * Any value works as long as it is unique within the Activity; this one is
+ * chosen to be recognisable in a log line.
+ */
+private const val CAMERA_PERMISSION_REQUEST = 4201

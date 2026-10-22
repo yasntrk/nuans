@@ -289,6 +289,40 @@ class PreviewConfig {
   NormalizedRect? shadeTabRect;
 }
 
+/// A started preview: what to display, and at what shape.
+class PreviewSession {
+  PreviewSession({
+    required this.textureId,
+    required this.previewWidth,
+    required this.previewHeight,
+    required this.displayRotationDegrees,
+  });
+
+  /// The Flutter texture the preview widget renders.
+  int textureId;
+
+  /// The frame size the platform chose for the preview stream.
+  ///
+  /// Part of the contract rather than left for the UI to guess, because every
+  /// [NormalizedRect] here is normalised against the frame. A preview drawn at
+  /// a different aspect ratio would put the overlay somewhere other than where
+  /// the measurement is actually taken, which is the one kind of misalignment
+  /// a clinician cannot see and cannot correct for.
+  int previewWidth;
+  int previewHeight;
+
+  /// Clockwise rotation, in degrees, the preview must be turned by before it
+  /// is displayed with the device held upright.
+  ///
+  /// A camera writes frames in its sensor's orientation, which on nearly every
+  /// phone is ninety degrees away from the way the device is held. Reported
+  /// rather than assumed, because the value is a property of the hardware and
+  /// getting it wrong rotates the overlay away from the regions the native
+  /// side is measuring. [previewWidth] and [previewHeight] describe the frame
+  /// before this rotation.
+  int displayRotationDegrees;
+}
+
 /// Sensor state at the moment of capture, recorded in the report and used to
 /// prove that the acquisition was locked.
 class ExposureState {
@@ -656,10 +690,9 @@ abstract class ShadeCameraHostApi {
   @async
   CameraCapabilities initialize();
 
-  /// Starts the preview and the metrics stream. Returns the Flutter texture id
-  /// the preview widget renders.
+  /// Starts the preview and the metrics stream.
   @async
-  int startPreview(PreviewConfig config);
+  PreviewSession startPreview(PreviewConfig config);
 
   /// Applies new live ROI rectangles after the user drags the overlay.
   @async

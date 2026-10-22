@@ -310,6 +310,78 @@
   "@shutterReady": {
     "description": "Shutter enabled state."
   },
+  "liveCameraTitle": "Live Preview",
+  "@liveCameraTitle": {
+    "description": "Live camera screen title."
+  },
+  "overlayWorkbenchTitle": "Overlay Workbench",
+  "@overlayWorkbenchTitle": {
+    "description": "Title of the screen that shows the overlay without a camera."
+  },
+  "overlayWorkbenchSubtitle": "No camera: for trying the layout and the traffic lights",
+  "@overlayWorkbenchSubtitle": {
+    "description": "Says plainly that this screen shows no camera image."
+  },
+  "liveCameraStarting": "Starting the camera…",
+  "@liveCameraStarting": {
+    "description": "Shown while the camera is being opened."
+  },
+  "liveCameraRetry": "Try again",
+  "@liveCameraRetry": {
+    "description": "Retries opening the camera."
+  },
+  "liveCameraPermissionBody": "Allow the camera in Settings ▸ Apps ▸ Nuans ▸ Permissions, then try again.",
+  "@liveCameraPermissionBody": {
+    "description": "Explains how to grant the camera permission."
+  },
+  "liveCameraUncalibrated": "This device has no profile. The preview and the alignment work; the colour checks and capture are off.",
+  "@liveCameraUncalibrated": {
+    "description": "Explains what the live preview can and cannot do without a device profile."
+  },
+  "liveMetricsTitle": "Live measurements",
+  "@liveMetricsTitle": {
+    "description": "Section title."
+  },
+  "liveMetricNeedsProfile": "needs a profile",
+  "@liveMetricNeedsProfile": {
+    "description": "Shown instead of a value that cannot be computed without a device profile."
+  },
+  "liveMetricSharpness": "Sharpness (Laplacian variance)",
+  "@liveMetricSharpness": {
+    "description": "Live metric label."
+  },
+  "liveMetricMotion": "Motion",
+  "@liveMetricMotion": {
+    "description": "Live metric label."
+  },
+  "liveMetricToothClipping": "Clipping on the tooth",
+  "@liveMetricToothClipping": {
+    "description": "Live metric label."
+  },
+  "liveMetricCardUniformity": "Card uniformity",
+  "@liveMetricCardUniformity": {
+    "description": "Live metric label."
+  },
+  "liveMetricIso": "ISO",
+  "@liveMetricIso": {
+    "description": "Live metric label."
+  },
+  "liveMetricExposure": "Exposure",
+  "@liveMetricExposure": {
+    "description": "Live metric label."
+  },
+  "liveMetricLocked": "Locked",
+  "@liveMetricLocked": {
+    "description": "Live metric label for the lock state."
+  },
+  "liveMetricUnlocked": "Automatic",
+  "@liveMetricUnlocked": {
+    "description": "Live metric label for the lock state."
+  },
+  "liveCameraNoFrames": "The camera opened but no frames are arriving.",
+  "@liveCameraNoFrames": {
+    "description": "Shown when the preview starts but no metrics follow."
+  },
   "clinicalTipHydration": "Measure at the start of the appointment: dehydration makes a tooth read lighter than it is.",
   "@clinicalTipHydration": {
     "description": "Clinical hint on the camera screen."

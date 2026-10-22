@@ -11,8 +11,11 @@ import android.hardware.camera2.TotalCaptureResult
 import android.media.ImageReader
 import android.os.Handler
 import android.os.HandlerThread
+import android.os.Looper
 import android.view.Surface
 import io.flutter.view.TextureRegistry
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
 
@@ -32,32 +35,155 @@ class Camera2SessionController(
     /** Preview frame rate; 30 is plenty for a traffic light. */
     private val previewFrameRate = 30
 
+    /**
+     * The control thread. Every host call is serialised onto it, and the code
+     * running there is allowed to block while it waits for the camera.
+     */
     private val cameraThread = HandlerThread("nuans-camera").apply { start() }
     private val cameraHandler = Handler(cameraThread.looper)
+
+    /**
+     * Where the framework delivers device, session and capture state.
+     *
+     * It has to be a different thread from the control one. Camera2 posts a
+     * state callback to a handler of our choosing, and the control flow waits
+     * for that callback to arrive; sharing one thread means the wait blocks
+     * the thread that has to deliver what it is waiting for, and the camera
+     * never opens at all.
+     */
+    private val callbackThread =
+        HandlerThread("nuans-camera-callbacks").apply { start() }
+    private val callbackHandler = Handler(callbackThread.looper)
+
+    /**
+     * Where frames are copied out of the readers.
+     *
+     * Separate from both of the above: copying a frame is the one expensive
+     * thing on any of these threads, and it must neither delay a state
+     * callback nor be delayed by a control thread that is waiting for a frame
+     * to arrive.
+     */
+    private val frameThread = HandlerThread("nuans-camera-frames").apply { start() }
+    private val frameHandler = Handler(frameThread.looper)
+
+    /**
+     * The platform thread, which is the only one allowed to send on a platform
+     * channel. See [emit].
+     */
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     private val store = CaptureStore()
 
+    /**
+     * Guards the preview frames and [previewFrameCount], which the frame
+     * thread writes and the control thread reads.
+     */
+    private val frameLock = java.lang.Object()
+
+@Volatile
     private var selection: CapabilityProbe.Selection? = null
+    @Volatile
     private var cameraDevice: CameraDevice? = null
+    @Volatile
     private var session: CameraCaptureSession? = null
     private var textureEntry: TextureRegistry.SurfaceTextureEntry? = null
     private var previewSurface: Surface? = null
     private var metricsReader: ImageReader? = null
     private var rawReader: ImageReader? = null
 
+    @Volatile
     private var previewConfig: PreviewConfig? = null
     private var latestPreview: YuvFrame? = null
     private var previousPreview: YuvFrame? = null
+
+    /**
+     * Frames seen since the preview started. The exposure solve waits on this
+     * rather than on a fixed delay, so it reads a frame that was actually
+     * exposed with the settings it just applied.
+     */
+    private var previewFrameCount = 0L
     private var lastMetricsAt = 0L
+    @Volatile
     private var isLocked = false
+    @Volatile
     private var lockedIso = 0
+    @Volatile
     private var lockedExposureNanos = 0L
+    @Volatile
     private var lockedFocusDistance: Float? = null
     private var lockedGains: FloatArray = UNITY_GAINS
+    @Volatile
     private var observedAutoGains: FloatArray? = null
+    @Volatile
     private var burst: BurstCollector? = null
 
     /** Set by the plugin so out-of-band failures and progress reach Dart. */
     var events: ShadeCameraFlutterApi? = null
+
+    /**
+     * Sends an event to Dart from the platform thread.
+     *
+     * Sending on a platform channel goes through
+     * `FlutterJNI.dispatchPlatformMessage`, whose first act is to assert that
+     * it is running on the main thread; an event raised on any of the threads
+     * above would throw instead of reaching Dart. A reply to a host call does
+     * not need this - that path takes a read lock rather than asserting a
+     * thread - so only events are marshalled.
+     */
+    private fun emit(send: (ShadeCameraFlutterApi) -> Unit) {
+        val api = events ?: return
+        mainHandler.post { send(api) }
+    }
+
+    /**
+     * Blocks the calling thread until more than [after] frames have been seen,
+     * and returns the newest one.
+     *
+     * Waiting on the frame count rather than sleeping for a fixed period is
+     * what makes the returned frame meaningful: it is one the camera produced
+     * after the caller's request went in, not whatever happened to be left
+     * over from before.
+     */
+    private fun awaitPreviewFrameAfter(after: Long, timeoutMillis: Long): YuvFrame {
+        val deadlineNanos = System.nanoTime() + timeoutMillis * 1_000_000L
+        synchronized(frameLock) {
+            while (previewFrameCount <= after) {
+                val remaining = (deadlineNanos - System.nanoTime()) / 1_000_000L
+                if (remaining <= 0L) {
+                    throw ShadeCameraFailure(
+                        CameraErrorCode.PREVIEW_NOT_RUNNING,
+                        "no preview frame arrived within $timeoutMillis ms",
+                        recoverable = true,
+                    )
+                }
+                frameLock.wait(remaining)
+            }
+            return latestPreview ?: throw ShadeCameraFailure(
+                CameraErrorCode.PREVIEW_NOT_RUNNING,
+                "the preview frame was released while it was being waited for",
+                recoverable = true,
+            )
+        }
+    }
+
+    /** Tells Dart which stage of a capture is running. */
+    private fun reportProgress(
+        captureId: String,
+        stage: CaptureStage,
+        captured: Long,
+        requested: Long,
+    ) {
+        val progress = CaptureProgress(
+            captureId = captureId,
+            stage = stage,
+            capturedFrames = captured,
+            requestedFrames = requested,
+        )
+        emit { it.onCaptureProgress(progress) {} }
+    }
+
+    /** Frames seen so far, for pairing with [awaitPreviewFrameAfter]. */
+    private fun framesSeen(): Long = synchronized(frameLock) { previewFrameCount }
 
     // region initialisation
 
@@ -93,7 +219,7 @@ class Camera2SessionController(
     }
 
     private fun openCamera(cameraId: String) {
-        val latch = java.util.concurrent.CountDownLatch(1)
+        val latch = CountDownLatch(1)
         var failure: ShadeCameraFailure? = null
         manager.openCamera(
             cameraId,
@@ -106,9 +232,11 @@ class Camera2SessionController(
                 override fun onDisconnected(device: CameraDevice) {
                     device.close()
                     cameraDevice = null
-                    events?.onSessionInterrupted(
-                        SessionInterruption.DEVICE_IN_USE_BY_ANOTHER_CLIENT,
-                    ) {}
+                    emit {
+                        it.onSessionInterrupted(
+                            SessionInterruption.DEVICE_IN_USE_BY_ANOTHER_CLIENT,
+                        ) {}
+                    }
                     latch.countDown()
                 }
 
@@ -131,16 +259,22 @@ class Camera2SessionController(
                         // The device was already open, so nobody is waiting on
                         // a callback: this has to travel out of band or it is
                         // reported to nobody at all.
-                        events?.onCameraError(raised.toEvent()) {}
+                        emit { it.onCameraError(raised.toEvent()) {} }
                     } else {
                         failure = raised
                     }
                     latch.countDown()
                 }
             },
-            cameraHandler,
+            callbackHandler,
         )
-        latch.await()
+        if (!latch.await(OPEN_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            throw ShadeCameraFailure(
+                CameraErrorCode.DEVICE_UNAVAILABLE,
+                "camera $cameraId did not answer within $OPEN_TIMEOUT_MILLIS ms",
+                recoverable = true,
+            )
+        }
         failure?.let { throw it }
         if (cameraDevice == null) {
             throw ShadeCameraFailure(
@@ -154,7 +288,10 @@ class Camera2SessionController(
 
     // region preview
 
-    fun startPreview(config: PreviewConfig, callback: (Result<Long>) -> Unit) {
+    fun startPreview(
+        config: PreviewConfig,
+        callback: (Result<PreviewSession>) -> Unit,
+    ) {
         cameraHandler.post {
             try {
                 val probed = selection ?: throw ShadeCameraFailure(
@@ -166,14 +303,31 @@ class Camera2SessionController(
                     "the camera is not open",
                 )
                 previewConfig = config
-                previousPreview = null
-                latestPreview = null
+                synchronized(frameLock) {
+                    previousPreview = null
+                    latestPreview = null
+                }
 
                 if (session == null) {
                     configureSession(device, probed)
                 }
                 startRepeating(automatic = !isLocked)
-                callback(Result.success(textureEntry?.id() ?: 0L))
+                callback(
+                    Result.success(
+                        PreviewSession(
+                            textureId = textureEntry?.id() ?: 0L,
+                            previewWidth = probed.previewSize.width.toLong(),
+                            previewHeight = probed.previewSize.height.toLong(),
+                            // Only rear cameras are selected, so the frame is
+                            // never mirrored and the sensor's own orientation
+                            // is the whole of the correction.
+                            displayRotationDegrees = probed.characteristics.get(
+                                android.hardware.camera2.CameraCharacteristics
+                                    .SENSOR_ORIENTATION,
+                            )?.toLong() ?: 0L,
+                        ),
+                    ),
+                )
             } catch (failure: ShadeCameraFailure) {
                 callback(Result.failure(failure))
             }
@@ -201,13 +355,22 @@ class Camera2SessionController(
             setOnImageAvailableListener({ reader ->
                 val image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
                 try {
-                    previousPreview = latestPreview
-                    latestPreview = YuvFrame.copyFrom(image)
-                    publishMetricsIfDue()
+                    val frame = YuvFrame.copyFrom(image)
+                    val previous = synchronized(frameLock) {
+                        val before = latestPreview
+                        previousPreview = before
+                        latestPreview = frame
+                        previewFrameCount++
+                        // Wakes a control thread waiting in
+                        // awaitPreviewFrameAfter.
+                        frameLock.notifyAll()
+                        before
+                    }
+                    publishMetricsIfDue(frame, previous)
                 } finally {
                     image.close()
                 }
-            }, cameraHandler)
+            }, frameHandler)
         }
 
         val surfaces = mutableListOf(previewSurface!!, metricsReader!!.surface)
@@ -227,12 +390,12 @@ class Camera2SessionController(
                     } finally {
                         image.close()
                     }
-                }, cameraHandler)
+                }, frameHandler)
             }
             surfaces.add(rawReader!!.surface)
         }
 
-        val latch = java.util.concurrent.CountDownLatch(1)
+        val latch = CountDownLatch(1)
         var failure: ShadeCameraFailure? = null
         @Suppress("DEPRECATION")
         device.createCaptureSession(
@@ -254,18 +417,27 @@ class Camera2SessionController(
                 override fun onClosed(closed: CameraCaptureSession) {
                     if (session !== closed) return
                     session = null
-                    events?.onCameraError(
-                        ShadeCameraFailure(
-                            CameraErrorCode.INTERRUPTED,
-                            "the capture session was closed by the system",
-                            recoverable = true,
-                        ).toEvent(),
-                    ) {}
+                    emit {
+                        it.onCameraError(
+                            ShadeCameraFailure(
+                                CameraErrorCode.INTERRUPTED,
+                                "the capture session was closed by the system",
+                                recoverable = true,
+                            ).toEvent(),
+                        ) {}
+                    }
                 }
             },
-            cameraHandler,
+            callbackHandler,
         )
-        latch.await()
+        if (!latch.await(CONFIGURE_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            throw ShadeCameraFailure(
+                CameraErrorCode.CONFIGURATION_FAILED,
+                "the camera did not configure a session within " +
+                    "$CONFIGURE_TIMEOUT_MILLIS ms",
+                recoverable = true,
+            )
+        }
         failure?.let { throw it }
     }
 
@@ -367,7 +539,7 @@ class Camera2SessionController(
                     }
                 }
             },
-            cameraHandler,
+            callbackHandler,
         )
     }
 
@@ -382,15 +554,21 @@ class Camera2SessionController(
         cameraHandler.post {
             session?.stopRepeating()
             previewConfig = null
-            latestPreview = null
-            previousPreview = null
+            synchronized(frameLock) {
+                latestPreview = null
+                previousPreview = null
+            }
             callback(Result.success(Unit))
         }
     }
 
-    private fun publishMetricsIfDue() {
+    /**
+     * Frames are passed in rather than read back from the fields: the control
+     * thread may clear those at any moment, and the frame this call describes
+     * has to be the one that triggered it.
+     */
+    private fun publishMetricsIfDue(frame: YuvFrame, previous: YuvFrame?) {
         val config = previewConfig ?: return
-        val frame = latestPreview ?: return
         val now = System.currentTimeMillis()
         if (now - lastMetricsAt < config.metricsIntervalMillis) return
         lastMetricsAt = now
@@ -410,30 +588,29 @@ class Camera2SessionController(
                 .mean
         }
 
-        events?.onPreviewMetrics(
-            PreviewMetrics(
-                timestampMillis = now,
-                format = selection?.capabilities?.defaultFormat
-                    ?: CaptureFormat.PROCESSED_LINEARISABLE,
-                signalEncoding = SignalEncoding.DISPLAY_REFERRED_SRGB,
-                toothSharpness = FrameQualityAnalyzer.laplacianVariance(frame, tooth),
-                motionScore = FrameQualityAnalyzer
-                    .motionScore(frame, previousPreview, tooth) ?: 0.0,
-                toothClippedFraction = toothClipping.first,
-                toothShadowFraction = toothClipping.second,
-                toothRgbMean = toothStats.mean,
-                grayCardClippedFraction = cardClipping.first,
-                grayCardTextureRatio = cardStats.uniformityRatio,
-                grayCardQuadrantRgb = quadrants,
-                iso = lockedIso.toLong(),
-                exposureSeconds = lockedExposureNanos / 1_000_000_000.0,
-                focusLocked = lockedFocusDistance != null,
-                exposureLocked = isLocked,
-                whiteBalanceLocked = isLocked,
-                focusDistanceDiopters = lockedFocusDistance?.toDouble(),
-                shadeTabRgbMean = tabMean,
-            ),
-        ) {}
+        val metrics = PreviewMetrics(
+            timestampMillis = now,
+            format = selection?.capabilities?.defaultFormat
+                ?: CaptureFormat.PROCESSED_LINEARISABLE,
+            signalEncoding = SignalEncoding.DISPLAY_REFERRED_SRGB,
+            toothSharpness = FrameQualityAnalyzer.laplacianVariance(frame, tooth),
+            motionScore = FrameQualityAnalyzer
+                .motionScore(frame, previous, tooth) ?: 0.0,
+            toothClippedFraction = toothClipping.first,
+            toothShadowFraction = toothClipping.second,
+            toothRgbMean = toothStats.mean,
+            grayCardClippedFraction = cardClipping.first,
+            grayCardTextureRatio = cardStats.uniformityRatio,
+            grayCardQuadrantRgb = quadrants,
+            iso = lockedIso.toLong(),
+            exposureSeconds = lockedExposureNanos / 1_000_000_000.0,
+            focusLocked = lockedFocusDistance != null,
+            exposureLocked = isLocked,
+            whiteBalanceLocked = isLocked,
+            focusDistanceDiopters = lockedFocusDistance?.toDouble(),
+            shadeTabRgbMean = tabMean,
+        )
+        emit { it.onPreviewMetrics(metrics) {} }
     }
 
     // endregion
@@ -504,7 +681,7 @@ class Camera2SessionController(
                         callback(Result.success(Unit))
                     }
                 },
-                cameraHandler,
+                callbackHandler,
             )
         }
     }
@@ -558,12 +735,16 @@ class Camera2SessionController(
                 for (iteration in 0 until ExposureSolver.MAX_ITERATIONS) {
                     lockedExposureNanos = (duration * 1_000_000_000L).toLong()
                     isLocked = true
+                    val seenBefore = framesSeen()
                     startRepeating(automatic = false)
-                    Thread.sleep(150)
-                    val frame = latestPreview ?: throw ShadeCameraFailure(
-                        CameraErrorCode.PREVIEW_NOT_RUNNING,
-                        "no preview frame arrived while solving exposure",
-                        recoverable = true,
+                    // Two frames, not one: the first to arrive may already
+                    // have been exposed when the new request went in, so only
+                    // the second is certain to carry the new settings. A fixed
+                    // sleep here measured the frame from the previous
+                    // iteration and the solver converged on nothing.
+                    val frame = awaitPreviewFrameAfter(
+                        seenBefore + 1,
+                        SETTLE_TIMEOUT_MILLIS,
                     )
                     val card = PixelRegion.from(
                         config.grayCardRect,
@@ -670,32 +851,35 @@ class Camera2SessionController(
                 val expected = request.settings.burstFrameCount.toInt()
                 val collector = BurstCollector(expected) { frames, levels ->
                     burst = null
-                    try {
-                        callback(
-                            Result.success(
-                                reduce(
-                                    frames = frames,
-                                    levels = levels ?: staticLevels(probed),
-                                    pattern = pattern,
-                                    request = request,
-                                    probed = probed,
+                    // Back onto the control thread: the last frame arrives on
+                    // the frame thread, and reducing a megapixel burst there
+                    // would stall preview delivery for the whole reduction.
+                    cameraHandler.post {
+                        try {
+                            callback(
+                                Result.success(
+                                    reduce(
+                                        frames = frames,
+                                        levels = levels ?: staticLevels(probed),
+                                        pattern = pattern,
+                                        request = request,
+                                        probed = probed,
+                                    ),
                                 ),
-                            ),
-                        )
-                    } catch (failure: ShadeCameraFailure) {
-                        callback(Result.failure(failure))
+                            )
+                        } catch (failure: ShadeCameraFailure) {
+                            callback(Result.failure(failure))
+                        }
                     }
                 }
                 burst = collector
 
-                events?.onCaptureProgress(
-                    CaptureProgress(
-                        captureId = request.captureId,
-                        stage = CaptureStage.CAPTURING_BURST,
-                        capturedFrames = 0,
-                        requestedFrames = request.settings.burstFrameCount,
-                    ),
-                ) {}
+                reportProgress(
+                    request.captureId,
+                    CaptureStage.CAPTURING_BURST,
+                    captured = 0,
+                    requested = request.settings.burstFrameCount,
+                )
 
                 val still = buildRequest(device, listOf(reader.surface), automatic = false)
                 active.captureBurst(
@@ -717,7 +901,7 @@ class Camera2SessionController(
                             collector.markFrameFailed()
                         }
                     },
-                    cameraHandler,
+                    callbackHandler,
                 )
             } catch (failure: ShadeCameraFailure) {
                 burst = null
@@ -792,14 +976,12 @@ class Camera2SessionController(
                 captureId = request.captureId,
             )
         }
-        events?.onCaptureProgress(
-            CaptureProgress(
-                captureId = request.captureId,
-                stage = CaptureStage.SELECTING_FRAMES,
-                capturedFrames = frames.size.toLong(),
-                requestedFrames = request.settings.burstFrameCount,
-            ),
-        ) {}
+        reportProgress(
+            request.captureId,
+            CaptureStage.SELECTING_FRAMES,
+            captured = frames.size.toLong(),
+            requested = request.settings.burstFrameCount,
+        )
 
         val toothRect = request.rois.firstOrNull { it.kind == RoiKind.TOOTH_BAND }?.rect
             ?: NormalizedRect(left = 0.3, top = 0.3, width = 0.4, height = 0.4)
@@ -833,14 +1015,12 @@ class Camera2SessionController(
             )
         }
 
-        events?.onCaptureProgress(
-            CaptureProgress(
-                captureId = request.captureId,
-                stage = CaptureStage.REDUCING_ROIS,
-                capturedFrames = frames.size.toLong(),
-                requestedFrames = request.settings.burstFrameCount,
-            ),
-        ) {}
+        reportProgress(
+            request.captureId,
+            CaptureStage.REDUCING_ROIS,
+            captured = frames.size.toLong(),
+            requested = request.settings.burstFrameCount,
+        )
 
         val samples = request.rois.map { roi ->
             reduceOne(roi, accepted, pattern, levels, request.settings.sampling)
@@ -966,12 +1146,20 @@ class Camera2SessionController(
 
     fun dispose(callback: (Result<Unit>) -> Unit) {
         cameraHandler.post {
-            session?.close()
+            // Cleared before closing, not after: closing is asynchronous, and
+            // the session's onClosed callback decides whether to report an
+            // interruption by comparing against this field. Leaving it set
+            // would report the deliberate teardown as a system interruption.
+            val closingSession = session
             session = null
-            cameraDevice?.close()
+            closingSession?.close()
+            val closingDevice = cameraDevice
             cameraDevice = null
+            closingDevice?.close()
+            metricsReader?.setOnImageAvailableListener(null, null)
             metricsReader?.close()
             metricsReader = null
+            rawReader?.setOnImageAvailableListener(null, null)
             rawReader?.close()
             rawReader = null
             previewSurface?.release()
@@ -979,10 +1167,17 @@ class Camera2SessionController(
             textureEntry?.release()
             textureEntry = null
             store.releaseAll()
-            latestPreview = null
-            previousPreview = null
+            synchronized(frameLock) {
+                latestPreview = null
+                previousPreview = null
+                // Anything still waiting for a frame is woken rather than
+                // left to time out against a dead reader.
+                frameLock.notifyAll()
+            }
             isLocked = false
             callback(Result.success(Unit))
+            frameThread.quitSafely()
+            callbackThread.quitSafely()
             cameraThread.quitSafely()
         }
     }
@@ -1028,6 +1223,28 @@ class Camera2SessionController(
 
 /** Burst length used to size the raw reader before Dart's settings arrive. */
 private const val kBurstFrameCountFallback = 3
+
+/**
+ * How long to wait for `CameraDevice.StateCallback`.
+ *
+ * Camera2 gives no upper bound on opening a device, and a device held by
+ * another application can leave the callback unanswered indefinitely. Five
+ * seconds is far longer than any healthy open takes, so exceeding it means
+ * something is wrong and the user is better told than left waiting.
+ */
+private const val OPEN_TIMEOUT_MILLIS = 5_000L
+
+/** The same reasoning for `CameraCaptureSession.StateCallback`. */
+private const val CONFIGURE_TIMEOUT_MILLIS = 5_000L
+
+/**
+ * How long a settings change may take to show up in a preview frame.
+ *
+ * At the preview frame rate of 30 this is about forty frames: enough for the
+ * request to travel through the pipeline on a slow device, short enough that a
+ * stalled preview surfaces as an error rather than a hang.
+ */
+private const val SETTLE_TIMEOUT_MILLIS = 1_500L
 
 /**
  * Neutral channel gains, used only when the camera does not report the gains

@@ -138,10 +138,15 @@ def main():
             changed = True
             if not check_only:
                 path.write_text(rendered)
-        print(
-            f"{'would update' if check_only and existing != rendered else 'wrote'}"
-            f" lib/l10n/app_{locale}.arb"
-        )
+        # Say what actually happened: in check mode nothing is written, and a
+        # line reading "wrote" there would be a report of work not done.
+        if not check_only:
+            action = "wrote"
+        elif existing != rendered:
+            action = "would update"
+        else:
+            action = "up to date"
+        print(f"{action} lib/l10n/app_{locale}.arb")
 
     tr = build("tr")
     en = build("en")
