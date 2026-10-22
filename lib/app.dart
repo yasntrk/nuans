@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:nuans/core/routing/app_router.dart';
 import 'package:nuans/core/theme/app_theme.dart';
 import 'package:nuans/l10n/app_localizations.dart';
@@ -11,7 +12,10 @@ import 'package:nuans/l10n/locale_controller.dart';
 /// Watches the locale rather than reading it once, which is what lets Settings
 /// change the language without a restart.
 class NuansApp extends ConsumerWidget {
-  const NuansApp({super.key});
+  const NuansApp({super.key, this.router});
+
+  /// Injected by tests so each one starts with an empty navigation stack.
+  final GoRouter? router;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +31,7 @@ class NuansApp extends ConsumerWidget {
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.clinical(),
-      routerConfig: appRouter,
+      routerConfig: router ?? appRouter,
       debugShowCheckedModeBanner: false,
     );
   }

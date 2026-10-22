@@ -111,7 +111,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   )
                 else
                   FilledButton(
-                    onPressed: () => context.go('/'),
+                    // pop, not go('/'): this screen was pushed, so popping it
+                    // returns to whatever opened it. go('/') would replace the
+                    // stack and leave the back button with nowhere to go.
+                    onPressed: () => context.pop(),
                     child: Text(strings.actionContinue),
                   ),
               ],
