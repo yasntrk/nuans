@@ -228,6 +228,20 @@ jobs:
       - name: Test
         run: flutter test --tags golden --reporter=expanded
 
+      # Here rather than in the Ubuntu job, for the reason above: these are
+      # rasterised images, and the generator's output on Linux would differ
+      # from the committed macOS bytes for reasons that have nothing to do
+      # with the mark. The adaptive icon's safe-zone assertion is arithmetic
+      # and runs on either platform, but it rides along with the generator.
+      - name: Launcher icons match their generator
+        run: |
+          flutter test tools/branding/generate_icons.dart
+          if ! git diff --quiet -- android/app/src/main/res; then
+            echo "::error::the launcher icons no longer match NuansMark"
+            git --no-pager diff --stat -- android/app/src/main/res
+            exit 1
+          fi
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

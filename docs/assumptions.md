@@ -173,3 +173,17 @@ uygulamayı çalıştırmakla, diğeri o hatayı ararken kodu okumakla bulundu.
 | I16 | Doku, motorun `registerTexture`/`unregisterTexture` çağrıları gibi ana thread'de oluşturulup bırakılır. | `FlutterJNI`'nin bu metotlarının ilk komutu `ensureRunningOnMainThread()`. Kamera thread'inden çağrılınca istisna fırlıyor ve bir `HandlerThread`'den kaçan istisna süreci öldürüyor — test eden kişide uygulamanın "ses gelip atması" buydu. |
 | I17 | Kontrol thread'indeki her posta bloğu `Throwable` yakalar. | Beklenmedik bir istisnanın uygulamayı sessizce yok etmesi, hata olarak bildirilmesinden kötü. Eklentinin `bridge` yorumundaki kuralın aynısı. |
 | I18 | `tools/native/check_platform_thread.py` CI'da; korunan sembol yalnızca kendi yardımcısının içinde geçebilir. | Bu hata sınıfı iki kez ısırdı ve native birim testi yok. Nöbetçi, iki hata örneğinde de yakaladığı doğrulanarak eklendi. |
+
+## Kimlik (2026-10-22)
+
+| # | Varsayım | Gerekçe |
+|---|---|---|
+| J1 | Simge: bir tutacağa asılı üç renk skalası sekmesi. | Uygulamanın yerini tuttuğu nesne bu. Önce çizilmiş bir diş denendi ve bırakıldı: 48 px'te dolu ve bantlı bir diş siluetine değil teneke kutuya benziyor, konikliği ayarlamak da kurtarmadı. Kamera simgesi "fotoğraf uygulaması", renk çarkı ise üç kanalın veremeyeceği bir gam vaat ederdi. |
+| J2 | Ortadaki sekme en uzun. | Ritim için değil: tek renk eşleşmesi gövde üçte birinden okunur (`ToothRegion.body`), yani gözün gitmesi gereken yer orası. |
+| J3 | Zemin `#37474F`, klinik temanın seed rengi; soğuk ve nötr. | Renk, nötr bir çevreye karşı değerlendirilir, başka bir renge karşı değil. Çekim ekranını gri tutan gerekçenin aynısı simgenin zeminini de seçiyor. |
+| J4 | Sekme tonları dekoratif; **skala değeri değil.** | Sıcak, birbirine yakın ve 48 px'te ayrışacak kadar uzak seçildiler — tipografik bir kısıt, kolorimetrik değil. Gerçek skala kütüphaneleri `assets/shade_libraries` içinde ve onlar da doğrulanmamış iskelet olarak işaretli. |
+| J5 | Asıl simge adaptive icon; eski bitmap yalnızca yedek. | `minSdk` 29, yani kurulduğu her cihaz simgeyi kendisi maskeliyor. |
+| J6 | İşaret adaptive tuvalin %72'sine sığdırılıyor ve bu bir testle kanıtlanıyor. | 108 dp'lik tuvalin yalnızca ortadaki 72 dp'si kesin görünür; yuvarlak maske onu daire olarak içine alır. Göz kararı yetmez: %75'te işaret merkezden 36,3 dp uzanıyordu, sınır 36,0. Test bunu yakaladı. |
+| J7 | Açılış ekranı aynı zemin ve aynı işaret, gece için ayrı dosya yok. | Zemin zaten koyu nötr; açık bir açılış, Flutter çizmeden önce ekranın beyaz parlaması demek olurdu. |
+| J8 | Varlıklar `tools/branding/generate_icons.dart` ile üretiliyor, elle çizilmiyor. | Deponun diğer üretilmiş dosyalarıyla aynı gerekçe: işaret kod olarak incelenebilir, bir oran değişince hiçbir yoğunluk geride kalmaz ve depoda olmayan bir tasarım dosyasını kimsenin saklaması gerekmez. Tazelik kontrolü macOS işinde, çünkü çıktı rasterize görüntü. |
+| J9 | iOS simgesi yok. | `ios/Runner` altında Xcode projesi, Info.plist ve varlık kataloğu yok; koyacak yer yok. |
