@@ -162,10 +162,7 @@ jobs:
       # which is precisely what happened, and failed both jobs. The analyzer
       # already excludes the same files, see analysis_options.yaml.
       - name: Verify formatting
-        run: |
-          git ls-files 'lib/*.dart' 'lib/**/*.dart' 'test/*.dart' 'test/**/*.dart' \
-            | grep -v '[.]g[.]dart$' \
-            | xargs dart format --output=none --set-exit-if-changed
+        run: tools/format.sh --check
 
       # The colour engine is a path dependency, so the root `flutter pub get`
       # resolves it as a dependency but leaves its own package config absent -

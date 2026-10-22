@@ -87,10 +87,9 @@ python3 -I tools/shade_libraries/generate.py
 python3 -I tools/spec_oracle/stage2_reference.py
 python3 -I tools/store/check_copy.py
 
-# biçimlendirme: üretilmiş dosyalara DOKUNMA. Pigeon çıktısı, onu üreten
-# jeneratörün verdiği haliyle commit'li; biçimlendirmek CI'daki tazelik
-# kontrolünü sağlanamaz hale getirir.
-git ls-files 'lib/**/*.dart' 'test/**/*.dart' | grep -v '[.]g[.]dart$' | xargs dart format
+# biçimlendirme. `dart format lib` DEĞİL: o, pigeon'un çıktısını da
+# biçimlendirip CI'daki tazelik kontrolünü sağlanamaz hale getirir.
+tools/format.sh
 ```
 
 ## Eksikler
