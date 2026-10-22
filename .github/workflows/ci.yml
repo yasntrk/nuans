@@ -149,8 +149,26 @@ jobs:
 
       - run: flutter pub get
 
+      # Generated files are excluded, and have to be: they are committed
+      # exactly as their generator emits them, so that the codegen freshness
+      # checks in the other job can diff against the generator's own output.
+      # Formatting them would make those two checks contradict each other -
+      # which is precisely what happened, and failed both jobs. The analyzer
+      # already excludes the same files, see analysis_options.yaml.
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: |
+          git ls-files 'lib/*.dart' 'lib/**/*.dart' 'test/*.dart' 'test/**/*.dart' \
+            | grep -v '[.]g[.]dart$' \
+            | xargs dart format --output=none --set-exit-if-changed
+
+      # The colour engine is a path dependency, so the root `flutter pub get`
+      # resolves it as a dependency but leaves its own package config absent -
+      # and a root-level analyse reads that package's tests, which then cannot
+      # find package:test. Resolving it here is what makes the analysis of this
+      # repository the same analysis a developer runs locally.
+      - name: Resolve the colour engine's own dependencies
+        working-directory: packages/shade_core
+        run: dart pub get
 
       - name: Analyse
         run: flutter analyze --fatal-infos

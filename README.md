@@ -73,6 +73,7 @@ cd packages/shade_core && dart pub get && dart test
 
 # uygulama
 flutter pub get
+(cd packages/shade_core && dart pub get)   # kök analiz onun testlerini de okur
 dart run pigeon --input pigeons/shade_camera_api.dart
 flutter gen-l10n
 flutter test
@@ -85,6 +86,11 @@ python3 -I tools/shade_libraries/generate.py
 # spesifikasyonun formüllerini doğrula
 python3 -I tools/spec_oracle/stage2_reference.py
 python3 -I tools/store/check_copy.py
+
+# biçimlendirme: üretilmiş dosyalara DOKUNMA. Pigeon çıktısı, onu üreten
+# jeneratörün verdiği haliyle commit'li; biçimlendirmek CI'daki tazelik
+# kontrolünü sağlanamaz hale getirir.
+git ls-files 'lib/**/*.dart' 'test/**/*.dart' | grep -v '[.]g[.]dart$' | xargs dart format
 ```
 
 ## Eksikler
